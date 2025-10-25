@@ -1,0 +1,881 @@
+/**
+ * Zone & Device Manager - Handles Homey zones and devices discovery and reading
+ */
+
+import {
+  HomeyZone,
+  HomeyDevice,
+  DeviceCapability,
+  ZoneHierarchy,
+  TemperatureReading,
+  ZoneTemperatureResult,
+} from './types';
+
+export class ZoneDeviceManager {
+  private homey: any;
+  private homeyApi: any;
+  private initialized: boolean = false;
+
+  constructor(homey: any) {
+    this.homey = homey;
+  }
+
+  /**
+   * Initialize Homey API connection
+   */
+  async init(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    try {
+      const { HomeyAPI } = require('homey-api');
+      this.homeyApi = await HomeyAPI.createAppAPI({ homey: this.homey });
+      this.initialized = true;
+      this.homey.log('ZoneDeviceManager: Homey API initialized');
+    } catch (error) {
+      this.homey.error('ZoneDeviceManager: Failed to initialize Homey API:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all zones
+   */
+  async getZones(): Promise<HomeyZone[]> {
+    await this.init();
+
+    try {
+      const zonesObj = await this.homeyApi.zones.getZones();
+      const zones: HomeyZone[] = Object.values(zonesObj).map((zone: any) => ({
+        id: zone.id,
+        name: zone.name,
+        parent: zone.parent || null,
+        icon: zone.icon || 'default',
+        active: zone.active || false,
+        activeOrigins: zone.activeOrigins || [],
+        activeLastUpdated: zone.activeLastUpdated || null,
+      }));
+
+      this.homey.log(`ZoneDeviceManager: Found ${zones.length} zones`);
+      return zones;
+    } catch (error) {
+      this.homey.error('ZoneDeviceManager: Failed to get zones:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific zone by ID
+   */
+  async getZone(zoneId: string): Promise<HomeyZone | null> {
+    await this.init();
+
+    try {
+      const zone = await this.homeyApi.zones.getZone({ id: zoneId });
+
+      if (!zone) {
+        return null;
+      }
+
+      return {
+        id: zone.id,
+        name: zone.name,
+        parent: zone.parent || null,
+        icon: zone.icon || 'default',
+        active: zone.active || false,
+        activeOrigins: zone.activeOrigins || [],
+        activeLastUpdated: zone.activeLastUpdated || null,
+      };
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to get zone ${zoneId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get zone hierarchy with parent-child relationships
+   */
+  async getZoneHierarchy(): Promise<ZoneHierarchy[]> {
+    await this.init();
+
+    try {
+      const zones = await this.getZones();
+      const devices = await this.getDevices();
+
+      // Build a map of zones by ID for quick lookup
+      const zoneMap = new Map<string, HomeyZone>();
+      zones.forEach(zone => zoneMap.set(zone.id, zone));
+
+      // Build hierarchy starting with root zones (no parent)
+      const buildHierarchy = (parentId: string | null): ZoneHierarchy[] => {
+        return zones
+          .filter(zone => zone.parent === parentId)
+          .map(zone => ({
+            zone,
+            children: buildHierarchy(zone.id),
+            devices: devices.filter(device => device.zone === zone.id),
+          }));
+      };
+
+      return buildHierarchy(null);
+    } catch (error) {
+      this.homey.error('ZoneDeviceManager: Failed to get zone hierarchy:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all zones that are currently active (have activity)
+   */
+  async getActiveZones(): Promise<HomeyZone[]> {
+    await this.init();
+
+    try {
+      const zones = await this.getZones();
+      return zones.filter(zone => zone.active);
+    } catch (error) {
+      this.homey.error('ZoneDeviceManager: Failed to get active zones:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all devices
+   */
+  async getDevices(): Promise<HomeyDevice[]> {
+    await this.init();
+
+    try {
+      const devicesObj = await this.homeyApi.devices.getDevices();
+      const zonesObj = await this.homeyApi.zones.getZones();
+
+      // Build zone name lookup map
+      const zoneNameMap = new Map<string, string>();
+      Object.values(zonesObj).forEach((zone: any) => {
+        zoneNameMap.set(zone.id, zone.name);
+      });
+
+      const devices: HomeyDevice[] = Object.values(devicesObj).map((device: any) => {
+        return {
+          id: device.id,
+          name: device.name,
+          zone: device.zone,
+          zoneName: zoneNameMap.get(device.zone) || device.zone, // Look up zone name from map
+          driverUri: device.driverId || 'unknown', // Use driverId instead of deprecated driverUri
+          class: device.class,
+          capabilities: device.capabilities || [],
+          capabilitiesObj: device.capabilitiesObj || {},
+          available: device.available !== false,
+          ready: device.ready !== false,
+        };
+      });
+
+      this.homey.log(`ZoneDeviceManager: Found ${devices.length} devices`);
+      return devices;
+    } catch (error) {
+      this.homey.error('ZoneDeviceManager: Failed to get devices:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific device by ID
+   */
+  async getDevice(deviceId: string): Promise<HomeyDevice | null> {
+    await this.init();
+
+    try {
+      const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+
+      if (!device) {
+        return null;
+      }
+
+      // Get zone name
+      let zoneName = device.zone;
+      try {
+        const zone = await this.homeyApi.zones.getZone({ id: device.zone });
+        if (zone) {
+          zoneName = zone.name;
+        }
+      } catch (error) {
+        // If zone lookup fails, just use zone ID
+        this.homey.log(`Could not get zone name for zone ${device.zone}`);
+      }
+
+      return {
+        id: device.id,
+        name: device.name,
+        zone: device.zone,
+        zoneName: zoneName, // Look up zone name instead of using deprecated property
+        driverUri: device.driverId || 'unknown', // Use driverId instead of deprecated driverUri
+        class: device.class,
+        capabilities: device.capabilities || [],
+        capabilitiesObj: device.capabilitiesObj || {},
+        available: device.available !== false,
+        ready: device.ready !== false,
+      };
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to get device ${deviceId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get all devices in a specific zone
+   */
+  async getDevicesInZone(zoneId: string): Promise<HomeyDevice[]> {
+    await this.init();
+
+    try {
+      const devices = await this.getDevices();
+      return devices.filter(device => device.zone === zoneId);
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to get devices in zone ${zoneId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get devices by capability (e.g., all devices with 'measure_temperature')
+   */
+  async getDevicesByCapability(capability: string): Promise<HomeyDevice[]> {
+    await this.init();
+
+    try {
+      const devices = await this.getDevices();
+      return devices.filter(device => device.capabilities.includes(capability));
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to get devices by capability ${capability}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get capability value from a device
+   */
+  async getCapabilityValue(deviceId: string, capability: string): Promise<any> {
+    await this.init();
+
+    try {
+      const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+
+      if (!device) {
+        throw new Error(`Device ${deviceId} not found`);
+      }
+
+      // Check if capability exists
+      if (!device.capabilities.includes(capability)) {
+        throw new Error(`Device ${device.name} does not have capability ${capability}`);
+      }
+
+      // Get the capability value
+      const capabilityObj = device.capabilitiesObj[capability];
+
+      if (!capabilityObj) {
+        throw new Error(`Capability ${capability} not found in device ${device.name}`);
+      }
+
+      if (!capabilityObj.getable) {
+        throw new Error(`Capability ${capability} is not readable`);
+      }
+
+      return capabilityObj.value;
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to get capability value:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all temperature readings in a zone
+   */
+  async getZoneTemperatures(zoneId: string): Promise<ZoneTemperatureResult> {
+    await this.init();
+
+    try {
+      const zone = await this.getZone(zoneId);
+
+      if (!zone) {
+        throw new Error(`Zone ${zoneId} not found`);
+      }
+
+      // Get all devices in the zone with temperature capability
+      const devicesInZone = await this.getDevicesInZone(zoneId);
+      const temperatureDevices = devicesInZone.filter(device =>
+        device.capabilities.includes('measure_temperature')
+      );
+
+      if (temperatureDevices.length === 0) {
+        return {
+          zoneId: zone.id,
+          zoneName: zone.name,
+          readings: [],
+        };
+      }
+
+      // Read temperature from each device
+      const readings: TemperatureReading[] = [];
+
+      for (const device of temperatureDevices) {
+        try {
+          const temperature = await this.getCapabilityValue(device.id, 'measure_temperature');
+          const capabilityObj = device.capabilitiesObj['measure_temperature'];
+
+          readings.push({
+            deviceId: device.id,
+            deviceName: device.name,
+            temperature,
+            units: capabilityObj?.units || '°C',
+          });
+        } catch (error) {
+          this.homey.error(`Failed to read temperature from ${device.name}:`, error);
+          // Continue with other devices
+        }
+      }
+
+      // Calculate statistics
+      let average: number | undefined;
+      let min: number | undefined;
+      let max: number | undefined;
+
+      if (readings.length > 0) {
+        const temps = readings.map(r => r.temperature);
+        average = temps.reduce((sum, temp) => sum + temp, 0) / temps.length;
+        min = Math.min(...temps);
+        max = Math.max(...temps);
+      }
+
+      return {
+        zoneId: zone.id,
+        zoneName: zone.name,
+        readings,
+        average,
+        min,
+        max,
+      };
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to get zone temperatures:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Format zone information as readable text
+   */
+  formatZoneInfo(zone: HomeyZone): string {
+    let info = `Zone: ${zone.name}\n`;
+    info += `ID: ${zone.id}\n`;
+    info += `Icon: ${zone.icon}\n`;
+    info += `Active: ${zone.active ? 'Yes' : 'No'}\n`;
+
+    if (zone.active && zone.activeOrigins.length > 0) {
+      info += `Active Origins: ${zone.activeOrigins.join(', ')}\n`;
+    }
+
+    if (zone.activeLastUpdated) {
+      info += `Last Activity: ${zone.activeLastUpdated}\n`;
+    }
+
+    return info;
+  }
+
+  /**
+   * Format device information as readable text
+   */
+  formatDeviceInfo(device: HomeyDevice): string {
+    let info = `Device: ${device.name}\n`;
+    info += `ID: ${device.id}\n`;
+    info += `Class: ${device.class}\n`;
+    info += `Zone: ${device.zoneName || device.zone}\n`;
+    info += `Available: ${device.available ? 'Yes' : 'No'}\n`;
+    info += `Ready: ${device.ready ? 'Yes' : 'No'}\n`;
+    info += `\nCapabilities:\n`;
+
+    device.capabilities.forEach(capability => {
+      const capObj = device.capabilitiesObj[capability];
+      if (capObj) {
+        const value = capObj.value !== null && capObj.value !== undefined ? capObj.value : 'N/A';
+        const units = capObj.units ? ` ${capObj.units}` : '';
+        info += `  - ${capObj.title || capability}: ${value}${units}\n`;
+      }
+    });
+
+    return info;
+  }
+
+  /**
+   * Format zone hierarchy as readable text (recursive)
+   */
+  formatZoneHierarchy(hierarchies: ZoneHierarchy[], indent: string = ''): string {
+    let output = '';
+
+    hierarchies.forEach(hierarchy => {
+      output += `${indent}📍 ${hierarchy.zone.name}`;
+
+      if (hierarchy.zone.active) {
+        output += ' 🔴';
+      }
+
+      output += '\n';
+
+      // Show devices in this zone
+      if (hierarchy.devices.length > 0) {
+        hierarchy.devices.forEach(device => {
+          output += `${indent}  └─ ${device.name} (${device.class})\n`;
+        });
+      }
+
+      // Recursively show children
+      if (hierarchy.children.length > 0) {
+        output += this.formatZoneHierarchy(hierarchy.children, indent + '  ');
+      }
+    });
+
+    return output;
+  }
+
+  // ============================================================================
+  // WRITE OPERATIONS (Optie B - Device Control)
+  // ============================================================================
+
+  /**
+   * Set a capability value on a device (WRITE operation)
+   */
+  async setCapabilityValue(deviceId: string, capability: string, value: any): Promise<void> {
+    await this.init();
+
+    try {
+      const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+
+      if (!device) {
+        throw new Error(`Device ${deviceId} not found`);
+      }
+
+      // Check if capability exists
+      if (!device.capabilities.includes(capability)) {
+        throw new Error(`Device ${device.name} does not have capability ${capability}`);
+      }
+
+      // Get the capability object
+      const capabilityObj = device.capabilitiesObj[capability];
+
+      if (!capabilityObj) {
+        throw new Error(`Capability ${capability} not found in device ${device.name}`);
+      }
+
+      // Check if capability is setable
+      if (!capabilityObj.setable) {
+        throw new Error(`Capability ${capability} is not writable (read-only)`);
+      }
+
+      // Convert and validate value type
+      const convertedValue = this.convertAndValidateValue(capabilityObj, value);
+
+      this.homey.log(`Setting ${device.name} ${capability}: ${value} (${typeof value}) -> ${convertedValue} (${typeof convertedValue})`);
+
+      // Set the value with the converted type
+      await device.setCapabilityValue(capability, convertedValue);
+
+      this.homey.log(`✅ Set ${device.name} ${capability} to ${convertedValue}`);
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to set capability value:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle a boolean capability (on/off)
+   */
+  async toggleDevice(deviceId: string, capability: string = 'onoff'): Promise<boolean> {
+    await this.init();
+
+    try {
+      const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+
+      if (!device) {
+        throw new Error(`Device ${deviceId} not found`);
+      }
+
+      // Get current value
+      const currentValue = await this.getCapabilityValue(deviceId, capability);
+
+      if (typeof currentValue !== 'boolean') {
+        throw new Error(`Capability ${capability} is not a boolean (current value: ${currentValue})`);
+      }
+
+      // Toggle
+      const newValue = !currentValue;
+      await this.setCapabilityValue(deviceId, capability, newValue);
+
+      this.homey.log(`✅ Toggled ${device.name} ${capability} from ${currentValue} to ${newValue}`);
+      return newValue;
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to toggle device:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set all lights in a zone to a specific state
+   */
+  async setZoneLights(
+    zoneId: string,
+    action: 'on' | 'off' | 'toggle',
+    dimLevel?: number
+  ): Promise<{ success: number; failed: number; devices: string[] }> {
+    await this.init();
+
+    try {
+      const zone = await this.getZone(zoneId);
+
+      if (!zone) {
+        throw new Error(`Zone ${zoneId} not found`);
+      }
+
+      // Get all devices in zone with onoff capability
+      const devicesInZone = await this.getDevicesInZone(zoneId);
+      const lights = devicesInZone.filter(
+        device => device.class === 'light' && device.capabilities.includes('onoff')
+      );
+
+      if (lights.length === 0) {
+        throw new Error(`No lights found in zone ${zone.name}`);
+      }
+
+      this.homey.log(`🔦 Setting ${lights.length} lights in ${zone.name} to ${action}`);
+
+      const results = {
+        success: 0,
+        failed: 0,
+        devices: [] as string[],
+      };
+
+      for (const light of lights) {
+        try {
+          if (action === 'toggle') {
+            await this.toggleDevice(light.id, 'onoff');
+          } else {
+            const state = action === 'on';
+            await this.setCapabilityValue(light.id, 'onoff', state);
+          }
+
+          // Set dim level if provided and device supports it
+          if (dimLevel !== undefined && light.capabilities.includes('dim')) {
+            const dimValue = dimLevel / 100; // Convert 0-100 to 0-1
+            await this.setCapabilityValue(light.id, 'dim', dimValue);
+          }
+
+          results.success++;
+          results.devices.push(light.name);
+        } catch (error: any) {
+          this.homey.error(`Failed to control ${light.name}:`, error.message);
+          results.failed++;
+        }
+      }
+
+      return results;
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to set zone lights:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set a capability value on all devices in a zone that have that capability
+   */
+  async setZoneDeviceCapability(
+    zoneId: string,
+    capability: string,
+    value: any
+  ): Promise<{ success: number; failed: number; devices: string[] }> {
+    await this.init();
+
+    try {
+      const zone = await this.getZone(zoneId);
+
+      if (!zone) {
+        throw new Error(`Zone ${zoneId} not found`);
+      }
+
+      // Get all devices in zone with the capability
+      const devicesInZone = await this.getDevicesInZone(zoneId);
+      const devicesWithCapability = devicesInZone.filter(device =>
+        device.capabilities.includes(capability)
+      );
+
+      if (devicesWithCapability.length === 0) {
+        throw new Error(`No devices with capability ${capability} found in zone ${zone.name}`);
+      }
+
+      this.homey.log(
+        `🎯 Setting ${capability} to ${value} on ${devicesWithCapability.length} devices in ${zone.name}`
+      );
+
+      const results = {
+        success: 0,
+        failed: 0,
+        devices: [] as string[],
+      };
+
+      for (const device of devicesWithCapability) {
+        try {
+          await this.setCapabilityValue(device.id, capability, value);
+          results.success++;
+          results.devices.push(device.name);
+        } catch (error: any) {
+          this.homey.error(`Failed to set ${capability} on ${device.name}:`, error.message);
+          results.failed++;
+        }
+      }
+
+      return results;
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to set zone device capability:`, error);
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // VALIDATION HELPERS
+  // ============================================================================
+
+  /**
+   * Convert and validate a capability value before setting it
+   * Handles type conversion from JSON strings to correct types
+   */
+  private convertAndValidateValue(capabilityObj: any, value: any): any {
+    const { type, min, max } = capabilityObj;
+
+    // Type conversion (from JSON/MCP which often sends strings)
+    let convertedValue = value;
+
+    if (type === 'boolean') {
+      // Convert string "true"/"false" or numbers 1/0 to boolean
+      if (typeof value === 'string') {
+        convertedValue = value.toLowerCase() === 'true' || value === '1';
+      } else if (typeof value === 'number') {
+        convertedValue = value !== 0;
+      } else if (typeof value !== 'boolean') {
+        throw new Error(`Cannot convert ${typeof value} to boolean`);
+      }
+    } else if (type === 'number') {
+      // Convert string to number
+      if (typeof value === 'string') {
+        convertedValue = parseFloat(value);
+        if (isNaN(convertedValue)) {
+          throw new Error(`Cannot convert "${value}" to number`);
+        }
+      } else if (typeof value !== 'number') {
+        throw new Error(`Expected number but got ${typeof value}`);
+      }
+    } else if (type === 'string') {
+      // Ensure string type
+      if (typeof value !== 'string') {
+        convertedValue = String(value);
+      }
+    }
+
+    // Type validation after conversion
+    if (type === 'number' && typeof convertedValue !== 'number') {
+      throw new Error(`Expected number but got ${typeof convertedValue}`);
+    }
+
+    if (type === 'boolean' && typeof convertedValue !== 'boolean') {
+      throw new Error(`Expected boolean but got ${typeof convertedValue}`);
+    }
+
+    // Range validation for numbers
+    if (type === 'number') {
+      if (min !== undefined && convertedValue < min) {
+        throw new Error(`Value ${convertedValue} is below minimum ${min}`);
+      }
+
+      if (max !== undefined && convertedValue > max) {
+        throw new Error(`Value ${convertedValue} is above maximum ${max}`);
+      }
+    }
+
+    return convertedValue;
+  }
+
+  /**
+   * Validate a capability value before setting it (legacy method)
+   */
+  private validateCapabilityValue(capabilityObj: any, value: any): void {
+    // Just call the new convert and validate method (but ignore the converted value)
+    this.convertAndValidateValue(capabilityObj, value);
+  }
+
+  // ============================================================================
+  // COMBINED SNAPSHOT OPERATIONS (Efficient data retrieval)
+  // ============================================================================
+
+  /**
+   * Get complete home structure in a single call (STATIC data)
+   * Returns all zones, devices, and their capabilities without current values
+   */
+  async getHomeStructure(): Promise<{
+    zones: Array<{
+      id: string;
+      name: string;
+      parent: string | null;
+      icon: string;
+    }>;
+    devices: Array<{
+      id: string;
+      name: string;
+      zone: string;
+      zoneName: string;
+      driverUri: string;
+      class: string;
+      capabilities: string[];
+      available: boolean;
+      ready: boolean;
+    }>;
+  }> {
+    await this.init();
+
+    try {
+      // Get all zones and devices in parallel
+      const [zones, devices] = await Promise.all([
+        this.getZones(),
+        this.getDevices(),
+      ]);
+
+      // Map to simplified structure (no current values, just static info)
+      const zoneList = zones.map(zone => ({
+        id: zone.id,
+        name: zone.name,
+        parent: zone.parent,
+        icon: zone.icon,
+      }));
+
+      const deviceList = devices.map(device => ({
+        id: device.id,
+        name: device.name,
+        zone: device.zone,
+        zoneName: device.zoneName || device.zone,
+        driverUri: device.driverUri,
+        class: device.class,
+        capabilities: device.capabilities,
+        available: device.available,
+        ready: device.ready,
+      }));
+
+      this.homey.log(`📸 Home structure snapshot: ${zoneList.length} zones, ${deviceList.length} devices`);
+
+      return {
+        zones: zoneList,
+        devices: deviceList,
+      };
+    } catch (error) {
+      this.homey.error('ZoneDeviceManager: Failed to get home structure:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current states of devices (DYNAMIC data)
+   * Supports filtering by zone, specific devices, or capability
+   */
+  async getStates(filters?: {
+    zoneId?: string;
+    deviceIds?: string[];
+    capability?: string;
+  }): Promise<{
+    devices: Array<{
+      id: string;
+      name: string;
+      zone: string;
+      class: string;
+      capabilities: Record<string, any>;
+    }>;
+    activeZones?: Array<{
+      id: string;
+      name: string;
+      active: boolean;
+      activeOrigins: string[];
+    }>;
+  }> {
+    await this.init();
+
+    try {
+      // Get devices based on filters
+      let devices: HomeyDevice[];
+
+      if (filters?.deviceIds && filters.deviceIds.length > 0) {
+        // Specific devices
+        const devicePromises = filters.deviceIds.map(id => this.getDevice(id));
+        const results = await Promise.all(devicePromises);
+        devices = results.filter(d => d !== null) as HomeyDevice[];
+      } else if (filters?.zoneId) {
+        // All devices in zone
+        devices = await this.getDevicesInZone(filters.zoneId);
+      } else {
+        // All devices
+        devices = await this.getDevices();
+      }
+
+      // Apply capability filter if specified
+      if (filters?.capability) {
+        devices = devices.filter(d => d.capabilities.includes(filters.capability!));
+      }
+
+      this.homey.log(`🔍 Getting states for ${devices.length} device(s)${filters?.capability ? ` with capability ${filters.capability}` : ''}`);
+
+      // Read current values for all capabilities (or just filtered one)
+      const deviceStates = await Promise.all(
+        devices.map(async device => {
+          const capabilities: Record<string, any> = {};
+
+          // Determine which capabilities to read
+          const capsToRead = filters?.capability
+            ? [filters.capability]
+            : device.capabilities;
+
+          // Read all capability values
+          for (const cap of capsToRead) {
+            try {
+              const capObj = device.capabilitiesObj[cap];
+              if (capObj && capObj.getable) {
+                capabilities[cap] = capObj.value;
+              }
+            } catch (error) {
+              this.homey.error(`Failed to read ${cap} from ${device.name}:`, error);
+              // Continue with other capabilities
+            }
+          }
+
+          return {
+            id: device.id,
+            name: device.name,
+            zone: device.zone,
+            class: device.class,
+            capabilities,
+          };
+        })
+      );
+
+      // Optionally include active zones
+      const activeZones = await this.getActiveZones();
+      const activeZonesList = activeZones.map(zone => ({
+        id: zone.id,
+        name: zone.name,
+        active: zone.active,
+        activeOrigins: zone.activeOrigins,
+      }));
+
+      this.homey.log(`📊 States retrieved: ${deviceStates.length} devices, ${activeZonesList.length} active zones`);
+
+      return {
+        devices: deviceStates,
+        activeZones: activeZonesList,
+      };
+    } catch (error) {
+      this.homey.error('ZoneDeviceManager: Failed to get states:', error);
+      throw error;
+    }
+  }
+}

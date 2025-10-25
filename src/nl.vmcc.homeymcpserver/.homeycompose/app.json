@@ -1,0 +1,30 @@
+{
+  "id": "nl.vmcc.homeymcpserver",
+  "version": "1.0.0",
+  "compatibility": ">=12.4.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "HomeyMCPServer"
+  },
+  "description": {
+    "en": "An MCP Server to expose Homey Flows and Devices to Large Languages Models (LLMs)"
+  },
+  "category": [
+    "tools"
+  ],
+  "permissions": [
+    "homey:manager:api"
+  ],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Jeroen van Menen",
+    "email": "jeroen@vanmenen.nl"
+  }
+}
