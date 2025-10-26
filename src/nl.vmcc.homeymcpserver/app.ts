@@ -2,9 +2,6 @@
 
 import Homey from 'homey';
 import express from 'express';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { FlowManager } from './lib/managers/flow-manager';
 import { ZoneDeviceManager } from './lib/managers/zone-device-manager';
 import { ToolRegistry } from './lib/tools/tool-registry';
@@ -24,7 +21,6 @@ import { ControlZoneCapabilityTool } from './lib/tools/control-zone-capability-t
 
 module.exports = class HomeyMCPApp extends Homey.App {
   private httpServer: any;
-  private mcpServer!: Server;
   private flowManager!: FlowManager;
   private zoneDeviceManager!: ZoneDeviceManager;
   private toolRegistry!: ToolRegistry;
@@ -116,24 +112,6 @@ module.exports = class HomeyMCPApp extends Homey.App {
       throw error;
     }
 
-    // Initialize MCP Server
-    this.mcpServer = new Server(
-      {
-        name: 'homey-mcp-server',
-        version: '0.1.0',
-      },
-      {
-        capabilities: {
-          tools: {
-            listChanged: true,  // We support dynamic tool list changes
-          },
-        },
-      }
-    );
-
-    // Set up MCP handlers
-    this.setupMCPHandlers();
-
     // Create Express app for HTTP endpoints
     const app = express();
     app.use(express.json());
@@ -187,11 +165,6 @@ module.exports = class HomeyMCPApp extends Homey.App {
 
     // Note: No automatic polling needed - Claude can use refresh_homey_flows tool manually
     this.log('Server ready. Use refresh_homey_flows tool to update flow list.');
-  }
-
-  private setupMCPHandlers() {
-    // MCP requests are handled by MCPServerManager
-    this.log('MCP handlers initialized');
   }
 
   async onUninit() {
