@@ -1,0 +1,78 @@
+/**
+ * Set Thermostat Tool - Control thermostat temperature
+ */
+
+import { BaseTool } from './base-tool';
+import { MCPTool, MCPToolCallResult } from '../types';
+import { ZoneDeviceManager } from '../managers/zone-device-manager';
+
+export class SetThermostatTool extends BaseTool {
+  readonly name = 'set_thermostat';
+
+  constructor(
+    private homey: any,
+    private zoneDeviceManager: ZoneDeviceManager
+  ) {
+    super();
+  }
+
+  getDefinition(): MCPTool {
+    return {
+      name: this.name,
+      description: `Control thermostat temperature.
+
+PURPOSE: Set target temperature on thermostats and heating devices.
+
+WHEN TO USE:
+- When user wants to change temperature setting
+- "Set bedroom to 21 degrees"
+- "Make it warmer/cooler" (adjust current temperature)
+
+TEMPERATURE: Always in degrees Celsius
+
+NOTE: This only sets the TARGET temperature, not current temperature (which is read-only).`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          deviceId: {
+            type: 'string',
+            description: 'The ID of the thermostat device',
+          },
+          temperature: {
+            type: 'number',
+            description: 'The target temperature in degrees Celsius',
+          },
+        },
+        required: ['deviceId', 'temperature'],
+      },
+    };
+  }
+
+  async execute(args: any): Promise<MCPToolCallResult> {
+    try {
+      this.validateRequiredArgs(args, ['deviceId', 'temperature']);
+
+      const { deviceId, temperature } = args;
+      this.homey.log(`🌡️ Setting thermostat: ${deviceId} - ${temperature}°C`);
+
+      const device = await this.zoneDeviceManager.getDevice(deviceId);
+
+      if (!device) {
+        throw new Error(`Device not found`);
+      }
+
+      if (!device.capabilities.includes('target_temperature')) {
+        throw new Error(`Device ${device.name} does not have temperature control capability`);
+      }
+
+      await this.zoneDeviceManager.setCapabilityValue(deviceId, 'target_temperature', temperature);
+
+      return this.createSuccessResponse(
+        `🌡️ Thermostat Set\n\nDevice: ${device.name}\nTarget Temperature: ${temperature}°C`
+      );
+    } catch (error: any) {
+      this.homey.error('Error setting thermostat:', error);
+      return this.createErrorResponse(error);
+    }
+  }
+}

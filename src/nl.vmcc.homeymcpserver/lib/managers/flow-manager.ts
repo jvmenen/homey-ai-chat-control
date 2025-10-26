@@ -2,7 +2,9 @@
  * Flow Manager - Handles Homey flow discovery and execution
  */
 
-import { HomeyFlow, MCPTool, FlowExecutionResult } from './types';
+import { HomeyFlow, MCPTool, FlowExecutionResult } from '../types';
+import { FlowParser, MCPFlowInfo } from '../parsers/flow-parser';
+import { TOKEN_NAMES } from '../constants';
 
 export class FlowManager {
   private homey: any;
@@ -181,153 +183,39 @@ export class FlowManager {
           continue;
         }
 
-        let foundMCPTrigger = false;
+        // Use FlowParser to extract MCP flow info (can return multiple for advanced flows)
+        const parser = new FlowParser();
+        const flowInfos = parser.parseFlow(flowData);
 
-        // Case 1: Simple flow with single trigger
-        if (flowData.trigger) {
-          this.homey.log(`    📝 Flow type: Simple Flow`);
-          this.homey.log(`    🎯 Trigger ID: ${flowData.trigger.id}`);
-          this.homey.log(`    🔗 Trigger URI: ${flowData.trigger.uri || 'N/A'}`);
-
-          // Check both short ID and full URI format
-          const isMCPTrigger =
-            flowData.trigger.id === 'mcp_command_received' ||
-            flowData.trigger.id === 'homey:app:nl.vmcc.homeymcpserver:mcp_command_received' ||
-            flowData.trigger.id?.endsWith(':mcp_command_received');
-
-          if (isMCPTrigger) {
-            this.homey.log(`    ✅ MATCH! This is our MCP trigger card!`);
-            foundMCPTrigger = true;
-
-            const command = flowData.trigger.args?.command;
-            this.homey.log(`    📦 Command: ${command}`);
-
-            if (command && typeof command === 'string') {
-              const parametersArg = flowData.trigger.args?.parameters;
-
-              mcpFlows.push({
-                flowId,
-                flowName,
-                command,
-                description: parametersArg || undefined,
-              });
-
-              this.homey.log(`    ✅ REGISTERED: Command "${command}"`);
-              if (parametersArg) {
-                this.homey.log(`    📝 Parameter definition: ${parametersArg}`);
-              }
-              this.registerCommand(command);
-            } else {
-              this.homey.log(`    ⚠️  WARNING: Command is not a string: ${JSON.stringify(command)}`);
-            }
+        if (flowInfos.length > 0) {
+          if (flowInfos.length === 1) {
+            this.homey.log(`    ✅ MATCH! Found MCP trigger with command "${flowInfos[0].command}"`);
           } else {
-            this.homey.log(`    ↪️  Different trigger (not MCP): ${flowData.trigger.id}`);
+            this.homey.log(`    ✅ MATCH! Found ${flowInfos.length} MCP triggers in this advanced flow`);
+          }
+
+          for (const flowInfo of flowInfos) {
+            if (flowInfos.length > 1) {
+              this.homey.log(`       → Command: "${flowInfo.command}"${flowInfo.cardId ? ` (card: ${flowInfo.cardId.substring(0, 8)}...)` : ''}`);
+            }
+
+            mcpFlows.push(flowInfo);
+            this.registerCommand(flowInfo.command);
+
+            if (flowInfo.description) {
+              this.homey.log(`    📝 Parameter definition: ${flowInfo.description}`);
+            }
           }
         } else {
-          this.homey.log(`    📝 Flow type: Not a simple flow (no 'trigger' property)`);
-        }
-
-        // Case 2: Advanced flow with cards object containing triggers
-        if (flowData.cards) {
-          const cards = flowData.cards;
-          const isArray = Array.isArray(cards);
-
-          this.homey.log(`    📝 Flow type: Advanced Flow`);
-          this.homey.log(`    📚 Cards structure: ${isArray ? 'Array' : 'Object'}`);
-
-          if (isArray) {
-            this.homey.log(`    📊 Total cards: ${cards.length}`);
-
-            for (let i = 0; i < cards.length; i++) {
-              const card = cards[i];
-              this.homey.log(`       Card [${i}]: type="${card.type}", id="${card.id}"`);
-
-              // Check both short ID and full URI format
-              const isMCPTrigger =
-                card.type === 'trigger' &&
-                (card.id === 'mcp_command_received' ||
-                  card.id === 'homey:app:nl.vmcc.homeymcpserver:mcp_command_received' ||
-                  card.id?.endsWith(':mcp_command_received'));
-
-              if (isMCPTrigger) {
-                this.homey.log(`       ✅ MATCH! Found MCP trigger at index ${i}`);
-                foundMCPTrigger = true;
-
-                const command = card.args?.command;
-                this.homey.log(`       📦 Command: ${command}`);
-
-                if (command && typeof command === 'string') {
-                  const parametersArg = card.args?.parameters;
-
-                  mcpFlows.push({
-                    flowId,
-                    flowName,
-                    command,
-                    description: parametersArg || undefined,
-                  });
-
-                  this.homey.log(`       ✅ REGISTERED: Command "${command}"`);
-                  if (parametersArg) {
-                    this.homey.log(`       📝 Parameter definition: ${parametersArg}`);
-                  }
-                  this.registerCommand(command);
-                } else {
-                  this.homey.log(`       ⚠️  WARNING: Command is not a string: ${JSON.stringify(command)}`);
-                }
-              }
-            }
-          } else if (typeof cards === 'object') {
-            const cardKeys = Object.keys(cards);
-            this.homey.log(`    📊 Total cards: ${cardKeys.length}`);
-
-            for (const cardKey of cardKeys) {
-              const cardData = cards[cardKey] as any;
-              this.homey.log(`       Card [${cardKey}]: type="${cardData.type}", id="${cardData.id}"`);
-
-              // Check both short ID and full URI format
-              const isMCPTrigger =
-                cardData.type === 'trigger' &&
-                (cardData.id === 'mcp_command_received' ||
-                  cardData.id === 'homey:app:nl.vmcc.homeymcpserver:mcp_command_received' ||
-                  cardData.id?.endsWith(':mcp_command_received'));
-
-              if (isMCPTrigger) {
-                this.homey.log(`       ✅ MATCH! Found MCP trigger at key "${cardKey}"`);
-                foundMCPTrigger = true;
-
-                const command = cardData.args?.command;
-                this.homey.log(`       📦 Command: ${command}`);
-
-                if (command && typeof command === 'string') {
-                  const parametersArg = cardData.args?.parameters;
-
-                  mcpFlows.push({
-                    flowId,
-                    flowName,
-                    command,
-                    description: parametersArg || undefined,
-                  });
-
-                  this.homey.log(`       ✅ REGISTERED: Command "${command}"`);
-                  if (parametersArg) {
-                    this.homey.log(`       📝 Parameter definition: ${parametersArg}`);
-                  }
-                  this.registerCommand(command);
-                } else {
-                  this.homey.log(`       ⚠️  WARNING: Command is not a string: ${JSON.stringify(command)}`);
-                }
-              }
-            }
+          // Log flow type for debugging
+          if (flowData.trigger) {
+            this.homey.log(`    ↪️  Simple flow with different trigger: ${flowData.trigger.id}`);
+          } else if (flowData.cards) {
+            this.homey.log(`    ↪️  Advanced flow without MCP trigger`);
+          } else {
+            this.homey.log(`    ⚠️  WARNING: Flow has neither 'trigger' nor 'cards' property!`);
+            this.homey.log(`    📋 Flow properties: ${Object.keys(flowData).join(', ')}`);
           }
-        }
-
-        if (!foundMCPTrigger && !flowData.trigger && !flowData.cards) {
-          this.homey.log(`    ⚠️  WARNING: Flow has neither 'trigger' nor 'cards' property!`);
-          this.homey.log(`    📋 Flow properties: ${Object.keys(flowData).join(', ')}`);
-        }
-
-        if (!foundMCPTrigger) {
-          this.homey.log(`    ➖ No MCP trigger found in this flow`);
         }
       }
 
@@ -541,12 +429,12 @@ export class FlowManager {
       // IMPORTANT: Always provide ALL tokens (value1-5), even if empty
       // Homey expects all defined tokens to have a value
       const tokens: Record<string, any> = {
-        command: toolName,
-        value1: '',
-        value2: '',
-        value3: '',
-        value4: '',
-        value5: '',
+        [TOKEN_NAMES.COMMAND]: toolName,
+        [TOKEN_NAMES.VALUE_1]: '',
+        [TOKEN_NAMES.VALUE_2]: '',
+        [TOKEN_NAMES.VALUE_3]: '',
+        [TOKEN_NAMES.VALUE_4]: '',
+        [TOKEN_NAMES.VALUE_5]: '',
       };
 
       if (parameters && Object.keys(parameters).length > 0) {
@@ -558,7 +446,7 @@ export class FlowManager {
           this.homey.log(`   Using parameter order: [${parameterOrder.join(', ')}]`);
           parameterOrder.forEach((paramName, index) => {
             if (index < 5 && parameters[paramName] !== undefined) {
-              const tokenName = `value${index + 1}`;
+              const tokenName = this.getTokenName(index);
               tokens[tokenName] = String(parameters[paramName]);
               this.homey.log(`   Token mapping: [[${tokenName}]] = "${paramName}" = "${parameters[paramName]}"`);
             }
@@ -569,7 +457,7 @@ export class FlowManager {
           const paramValues = Object.values(parameters);
           paramValues.forEach((value, index) => {
             if (index < 5) {
-              const tokenName = `value${index + 1}`;
+              const tokenName = this.getTokenName(index);
               tokens[tokenName] = String(value);
               this.homey.log(`   Token mapping: [[${tokenName}]] = "${value}"`);
             }
@@ -625,5 +513,19 @@ export class FlowManager {
       this.homey.error(`FlowManager: Failed to get flow ${flowName}:`, error);
       return null;
     }
+  }
+
+  /**
+   * Get token name for parameter index (value1-value5)
+   */
+  private getTokenName(index: number): string {
+    const tokenNames = [
+      TOKEN_NAMES.VALUE_1,
+      TOKEN_NAMES.VALUE_2,
+      TOKEN_NAMES.VALUE_3,
+      TOKEN_NAMES.VALUE_4,
+      TOKEN_NAMES.VALUE_5,
+    ];
+    return tokenNames[index] || `value${index + 1}`;
   }
 }

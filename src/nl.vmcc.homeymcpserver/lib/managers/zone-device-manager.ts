@@ -9,7 +9,8 @@ import {
   ZoneHierarchy,
   TemperatureReading,
   ZoneTemperatureResult,
-} from './types';
+} from '../types';
+import { CapabilityValueConverter } from '../utils/capability-value-converter';
 
 export class ZoneDeviceManager {
   private homey: any;
@@ -361,80 +362,6 @@ export class ZoneDeviceManager {
     }
   }
 
-  /**
-   * Format zone information as readable text
-   */
-  formatZoneInfo(zone: HomeyZone): string {
-    let info = `Zone: ${zone.name}\n`;
-    info += `ID: ${zone.id}\n`;
-    info += `Icon: ${zone.icon}\n`;
-    info += `Active: ${zone.active ? 'Yes' : 'No'}\n`;
-
-    if (zone.active && zone.activeOrigins.length > 0) {
-      info += `Active Origins: ${zone.activeOrigins.join(', ')}\n`;
-    }
-
-    if (zone.activeLastUpdated) {
-      info += `Last Activity: ${zone.activeLastUpdated}\n`;
-    }
-
-    return info;
-  }
-
-  /**
-   * Format device information as readable text
-   */
-  formatDeviceInfo(device: HomeyDevice): string {
-    let info = `Device: ${device.name}\n`;
-    info += `ID: ${device.id}\n`;
-    info += `Class: ${device.class}\n`;
-    info += `Zone: ${device.zoneName || device.zone}\n`;
-    info += `Available: ${device.available ? 'Yes' : 'No'}\n`;
-    info += `Ready: ${device.ready ? 'Yes' : 'No'}\n`;
-    info += `\nCapabilities:\n`;
-
-    device.capabilities.forEach(capability => {
-      const capObj = device.capabilitiesObj[capability];
-      if (capObj) {
-        const value = capObj.value !== null && capObj.value !== undefined ? capObj.value : 'N/A';
-        const units = capObj.units ? ` ${capObj.units}` : '';
-        info += `  - ${capObj.title || capability}: ${value}${units}\n`;
-      }
-    });
-
-    return info;
-  }
-
-  /**
-   * Format zone hierarchy as readable text (recursive)
-   */
-  formatZoneHierarchy(hierarchies: ZoneHierarchy[], indent: string = ''): string {
-    let output = '';
-
-    hierarchies.forEach(hierarchy => {
-      output += `${indent}📍 ${hierarchy.zone.name}`;
-
-      if (hierarchy.zone.active) {
-        output += ' 🔴';
-      }
-
-      output += '\n';
-
-      // Show devices in this zone
-      if (hierarchy.devices.length > 0) {
-        hierarchy.devices.forEach(device => {
-          output += `${indent}  └─ ${device.name} (${device.class})\n`;
-        });
-      }
-
-      // Recursively show children
-      if (hierarchy.children.length > 0) {
-        output += this.formatZoneHierarchy(hierarchy.children, indent + '  ');
-      }
-    });
-
-    return output;
-  }
 
   // ============================================================================
   // WRITE OPERATIONS (Optie B - Device Control)
@@ -646,58 +573,7 @@ export class ZoneDeviceManager {
    * Handles type conversion from JSON strings to correct types
    */
   private convertAndValidateValue(capabilityObj: any, value: any): any {
-    const { type, min, max } = capabilityObj;
-
-    // Type conversion (from JSON/MCP which often sends strings)
-    let convertedValue = value;
-
-    if (type === 'boolean') {
-      // Convert string "true"/"false" or numbers 1/0 to boolean
-      if (typeof value === 'string') {
-        convertedValue = value.toLowerCase() === 'true' || value === '1';
-      } else if (typeof value === 'number') {
-        convertedValue = value !== 0;
-      } else if (typeof value !== 'boolean') {
-        throw new Error(`Cannot convert ${typeof value} to boolean`);
-      }
-    } else if (type === 'number') {
-      // Convert string to number
-      if (typeof value === 'string') {
-        convertedValue = parseFloat(value);
-        if (isNaN(convertedValue)) {
-          throw new Error(`Cannot convert "${value}" to number`);
-        }
-      } else if (typeof value !== 'number') {
-        throw new Error(`Expected number but got ${typeof value}`);
-      }
-    } else if (type === 'string') {
-      // Ensure string type
-      if (typeof value !== 'string') {
-        convertedValue = String(value);
-      }
-    }
-
-    // Type validation after conversion
-    if (type === 'number' && typeof convertedValue !== 'number') {
-      throw new Error(`Expected number but got ${typeof convertedValue}`);
-    }
-
-    if (type === 'boolean' && typeof convertedValue !== 'boolean') {
-      throw new Error(`Expected boolean but got ${typeof convertedValue}`);
-    }
-
-    // Range validation for numbers
-    if (type === 'number') {
-      if (min !== undefined && convertedValue < min) {
-        throw new Error(`Value ${convertedValue} is below minimum ${min}`);
-      }
-
-      if (max !== undefined && convertedValue > max) {
-        throw new Error(`Value ${convertedValue} is above maximum ${max}`);
-      }
-    }
-
-    return convertedValue;
+    return CapabilityValueConverter.convert(capabilityObj, value);
   }
 
   /**
