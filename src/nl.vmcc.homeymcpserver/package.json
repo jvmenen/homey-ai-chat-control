@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.2",
-    "body-parser": "^2.2.0",
     "express": "^5.1.0",
     "homey-api": "^3.14.9"
   }

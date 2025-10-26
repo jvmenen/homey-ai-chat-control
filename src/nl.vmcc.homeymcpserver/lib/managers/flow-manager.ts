@@ -3,7 +3,7 @@
  */
 
 import { HomeyFlow, MCPTool, FlowExecutionResult } from '../types';
-import { FlowParser, MCPFlowInfo } from '../parsers/flow-parser';
+import { FlowParser } from '../parsers/flow-parser';
 import { TOKEN_NAMES } from '../constants';
 
 export class FlowManager {
