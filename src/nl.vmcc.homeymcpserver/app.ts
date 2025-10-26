@@ -7,7 +7,6 @@ import { ZoneDeviceManager } from './lib/managers/zone-device-manager';
 import { ToolRegistry } from './lib/tools/tool-registry';
 import { MCPServerManager } from './lib/managers/mcp-server-manager';
 import { MCP_SERVER_CONFIG, JSONRPC_ERROR_CODES } from './lib/constants';
-import { HelloHomeyTool } from './lib/tools/hello-homey-tool';
 import { TriggerAnyFlowTool } from './lib/tools/trigger-any-flow-tool';
 import { HomeStructureTool } from './lib/tools/home-structure-tool';
 import { RefreshFlowsTool } from './lib/tools/refresh-flows-tool';
@@ -60,7 +59,6 @@ module.exports = class HomeyMCPApp extends Homey.App {
       const sharedState = { value: this.lastKnownToolsList };
 
       // Register all tools
-      this.toolRegistry.register(new HelloHomeyTool(this.homey));
       this.toolRegistry.register(new RefreshFlowsTool(this.homey, this.flowManager, sharedState));
       this.toolRegistry.register(new TriggerAnyFlowTool(this.homey, this.flowManager));
       this.toolRegistry.register(new HomeStructureTool(this.homey, this.zoneDeviceManager));
