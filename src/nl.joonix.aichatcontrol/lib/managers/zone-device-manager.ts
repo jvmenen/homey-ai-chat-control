@@ -21,6 +21,7 @@ import {
   CapabilityValueError,
   HomeyMCPError,
 } from '../utils/errors';
+import { IZoneDeviceManager } from '../interfaces';
 
 // Type for Homey API device/zone objects (simplified interface)
 interface HomeyAPIDevice {
@@ -58,7 +59,7 @@ interface HomeyAPIZone {
   [key: string]: unknown;
 }
 
-export class ZoneDeviceManager {
+export class ZoneDeviceManager implements IZoneDeviceManager {
   private homey: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
   private homeyApi!: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- HomeyAPI types are incomplete
   private initialized: boolean = false;

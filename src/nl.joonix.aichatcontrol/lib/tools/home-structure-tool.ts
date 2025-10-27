@@ -5,7 +5,7 @@
 import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
-import { ZoneDeviceManager } from '../managers/zone-device-manager';
+import { IZoneDeviceManager } from '../interfaces';
 import { XMLFormatter } from '../formatters/xml-formatter';
 
 /**
@@ -17,7 +17,7 @@ export class HomeStructureTool extends BaseTool {
 
   constructor(
     private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
-    private zoneDeviceManager: ZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
   }

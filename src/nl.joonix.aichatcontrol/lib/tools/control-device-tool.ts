@@ -5,14 +5,14 @@
 import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
-import { ZoneDeviceManager } from '../managers/zone-device-manager';
+import { IZoneDeviceManager } from '../interfaces';
 
 export class ControlDeviceTool extends BaseTool {
   readonly name = 'control_device';
 
   constructor(
     private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
-    private zoneDeviceManager: ZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
   }

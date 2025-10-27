@@ -5,7 +5,7 @@
 import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
-import { ZoneDeviceManager } from '../managers/zone-device-manager';
+import { IZoneDeviceManager } from '../interfaces';
 import { DeviceNotFoundError, CapabilityNotFoundError } from '../utils/errors';
 
 export class SetThermostatTool extends BaseTool {
@@ -13,7 +13,7 @@ export class SetThermostatTool extends BaseTool {
 
   constructor(
     private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
-    private zoneDeviceManager: ZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
   }

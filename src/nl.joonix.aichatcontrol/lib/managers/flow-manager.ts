@@ -7,6 +7,7 @@ import type { HomeyAPI } from 'homey-api';
 import { HomeyFlow, MCPTool, FlowExecutionResult } from '../types';
 import { FlowParser } from '../parsers/flow-parser';
 import { TOKEN_NAMES } from '../constants';
+import { IFlowManager } from '../interfaces';
 
 // Type for flow trigger card - use any due to Homey namespace type issues
 type FlowTriggerCard = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -36,7 +37,7 @@ interface HomeyAPIFlow {
   [key: string]: unknown;
 }
 
-export class FlowManager {
+export class FlowManager implements IFlowManager {
   private homey: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
   private homeyApi!: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- HomeyAPI types are incomplete
   private initialized: boolean = false;

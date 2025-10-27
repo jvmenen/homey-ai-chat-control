@@ -5,7 +5,7 @@
 import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
-import { FlowManager } from '../managers/flow-manager';
+import { IFlowManager } from '../interfaces';
 import { ToolStateManager } from '../managers/tool-state-manager';
 
 /**
@@ -17,7 +17,7 @@ export class RefreshFlowsTool extends BaseTool {
 
   constructor(
     private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
-    private flowManager: FlowManager,
+    private flowManager: IFlowManager,
     private toolStateManager: ToolStateManager
   ) {
     super();

@@ -5,7 +5,7 @@
 import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
-import { FlowManager } from '../managers/flow-manager';
+import { IFlowManager } from '../interfaces';
 
 /**
  * Workaround tool for triggering flows that aren't in the current tool list
@@ -16,7 +16,7 @@ export class TriggerAnyFlowTool extends BaseTool {
 
   constructor(
     private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
-    private flowManager: FlowManager
+    private flowManager: IFlowManager
   ) {
     super();
   }

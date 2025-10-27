@@ -8,7 +8,7 @@
 
 import Homey from 'homey';
 import { ToolRegistry } from '../tools/tool-registry';
-import { FlowManager } from './flow-manager';
+import { IFlowManager } from '../interfaces';
 import { MCP_SERVER_CONFIG, JSONRPC_ERROR_CODES } from '../constants';
 import { MCPTool } from '../types';
 
@@ -44,7 +44,7 @@ export class MCPServerManager {
   constructor(
     private toolRegistry: ToolRegistry,
     private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
-    private flowManager?: FlowManager
+    private flowManager?: IFlowManager
   ) {}
 
   /**
@@ -142,7 +142,7 @@ export class MCPServerManager {
       this.homey.log(`   → Tool not in registry, checking flow-based tools: ${name}`);
 
       const flowTools = await this.flowManager.getToolsFromFlows();
-      const flowTool = flowTools.find(t => t.name === name);
+      const flowTool = flowTools.find((t: MCPTool) => t.name === name);
 
       if (flowTool) {
         this.homey.log(`   ✓ Found as flow-based tool: ${name}`);
