@@ -114,102 +114,24 @@ export class FlowManager {
     await this.init();
 
     try {
-      this.homey.log('╔════════════════════════════════════════════════════════════════════╗');
-      this.homey.log('║           STARTING MCP FLOW DISCOVERY                              ║');
-      this.homey.log('╚════════════════════════════════════════════════════════════════════╝');
+      this.homey.log('Discovering MCP flows...');
 
       // Get both regular flows AND advanced flows
-      this.homey.log('📡 Fetching regular flows...');
       const regularFlows = await this.homeyApi.flow.getFlows();
-      const regularFlowCount = Object.keys(regularFlows).length;
-      this.homey.log(`   ✓ Found ${regularFlowCount} regular flows`);
-
-      this.homey.log('📡 Fetching advanced flows...');
       const advancedFlows = await this.homeyApi.flow.getAdvancedFlows();
-      const advancedFlowCount = Object.keys(advancedFlows).length;
-      this.homey.log(`   ✓ Found ${advancedFlowCount} advanced flows`);
 
       // Combine both types
       const allFlows = { ...regularFlows, ...advancedFlows };
       const totalFlowCount = Object.keys(allFlows).length;
 
-      this.homey.log('');
-      this.homey.log(`📊 Total flows: ${totalFlowCount} (${regularFlowCount} regular + ${advancedFlowCount} advanced)`);
-      this.homey.log('');
-
       const mcpFlows: Array<{ flowId: string; flowName: string; command: string; description?: string }> = [];
 
-      // Log first flow structure for debugging
-      const firstFlow = Object.values(allFlows)[0];
-      if (firstFlow) {
-        this.homey.log('┌─── FLOW STRUCTURE ANALYSIS ───────────────────────────────────────┐');
-        this.homey.log('│ Analyzing first flow to understand structure...                  │');
-        this.homey.log('└───────────────────────────────────────────────────────────────────┘');
-
-        const firstFlowData = firstFlow as HomeyAPIFlow;
-        this.homey.log(`  📋 Flow name: "${firstFlowData.name}"`);
-        this.homey.log(`  🆔 Flow ID: ${Object.keys(allFlows)[0]}`);
-        this.homey.log(`  🏷️  Flow type: ${firstFlowData.type || 'unknown'}`);
-        this.homey.log(`  📌 Enabled: ${firstFlowData.enabled !== false ? 'Yes' : 'No'}`);
-        this.homey.log(`  🔑 Properties: ${Object.keys(firstFlowData).join(', ')}`);
-
-        if (firstFlowData.trigger) {
-          this.homey.log(`  ✓ Has 'trigger' property (Simple Flow)`);
-          this.homey.log(`    - Trigger ID: ${firstFlowData.trigger.id}`);
-          this.homey.log(`    - Trigger URI: ${firstFlowData.trigger.uri || 'N/A'}`);
-          if (firstFlowData.trigger.args) {
-            this.homey.log(`    - Trigger args: ${JSON.stringify(Object.keys(firstFlowData.trigger.args))}`);
-          }
-        } else {
-          this.homey.log(`  ✗ No 'trigger' property`);
-        }
-
-        if (firstFlowData.cards) {
-          this.homey.log(`  ✓ Has 'cards' property (Advanced Flow)`);
-          this.homey.log(`    - Cards type: ${Array.isArray(firstFlowData.cards) ? 'Array' : 'Object'}`);
-
-          if (Array.isArray(firstFlowData.cards)) {
-            this.homey.log(`    - Cards count: ${firstFlowData.cards.length}`);
-            this.homey.log(`    - Card types: ${firstFlowData.cards.map(c => c.type).join(', ')}`);
-          } else {
-            const cardKeys = Object.keys(firstFlowData.cards);
-            this.homey.log(`    - Cards count: ${cardKeys.length}`);
-            this.homey.log(`    - Card IDs: ${cardKeys.slice(0, 3).join(', ')}${cardKeys.length > 3 ? '...' : ''}`);
-
-            // Show types of first few cards
-            const cardTypes = Object.values(firstFlowData.cards)
-              .slice(0, 5)
-              .map(c => c.type)
-              .filter(Boolean);
-            if (cardTypes.length > 0) {
-              this.homey.log(`    - Card types (sample): ${cardTypes.join(', ')}`);
-            }
-          }
-        } else {
-          this.homey.log(`  ✗ No 'cards' property`);
-        }
-        this.homey.log('');
-      }
-
-      this.homey.log('┌─── SCANNING ALL FLOWS ────────────────────────────────────────────┐');
-      this.homey.log('│ Looking for flows with MCP trigger card...                       │');
-      this.homey.log('└───────────────────────────────────────────────────────────────────┘');
-
-      let flowIndex = 0;
+      // Scan all flows for MCP triggers
       for (const [flowId, flow] of Object.entries(allFlows)) {
-        flowIndex++;
         const flowData = flow as HomeyAPIFlow;
-        const flowName = flowData.name || 'Unnamed flow';
 
-        // Determine if this is a regular or advanced flow
-        const isAdvancedFlow = flowId in advancedFlows;
-        const flowTypeLabel = isAdvancedFlow ? '🔷 Advanced' : '📄 Regular';
-
-        this.homey.log(`\n[${flowIndex}/${totalFlowCount}] 🔍 Scanning: "${flowName}" (${flowId.substring(0, 8)}...) ${flowTypeLabel}`);
-
-        // Check if flow is enabled
+        // Skip disabled flows
         if (flowData.enabled === false) {
-          this.homey.log(`    ⏸️  Flow is DISABLED - skipping`);
           continue;
         }
 
@@ -218,71 +140,18 @@ export class FlowManager {
         const flowInfos = parser.parseFlow(flowData);
 
         if (flowInfos.length > 0) {
-          if (flowInfos.length === 1) {
-            this.homey.log(`    ✅ MATCH! Found MCP trigger with command "${flowInfos[0].command}"`);
-          } else {
-            this.homey.log(`    ✅ MATCH! Found ${flowInfos.length} MCP triggers in this advanced flow`);
-          }
-
           for (const flowInfo of flowInfos) {
-            if (flowInfos.length > 1) {
-              this.homey.log(`       → Command: "${flowInfo.command}"${flowInfo.cardId ? ` (card: ${flowInfo.cardId.substring(0, 8)}...)` : ''}`);
-            }
-
             mcpFlows.push(flowInfo);
             this.registerCommand(flowInfo.command);
-
-            if (flowInfo.description) {
-              this.homey.log(`    📝 Parameter definition: ${flowInfo.description}`);
-            }
-          }
-        } else {
-          // Log flow type for debugging
-          if (flowData.trigger) {
-            this.homey.log(`    ↪️  Simple flow with different trigger: ${flowData.trigger.id}`);
-          } else if (flowData.cards) {
-            this.homey.log(`    ↪️  Advanced flow without MCP trigger`);
-          } else {
-            this.homey.log(`    ⚠️  WARNING: Flow has neither 'trigger' nor 'cards' property!`);
-            this.homey.log(`    📋 Flow properties: ${Object.keys(flowData).join(', ')}`);
           }
         }
       }
 
-      this.homey.log('');
-      this.homey.log('╔════════════════════════════════════════════════════════════════════╗');
-      this.homey.log('║           FLOW DISCOVERY COMPLETE                                  ║');
-      this.homey.log('╚════════════════════════════════════════════════════════════════════╝');
-      this.homey.log(`✅ Found ${mcpFlows.length} flow(s) with MCP triggers out of ${totalFlowCount} total flows`);
-      this.homey.log(`   (Scanned: ${regularFlowCount} regular + ${advancedFlowCount} advanced)`);
+      this.homey.log(`Found ${mcpFlows.length} MCP flow(s) out of ${totalFlowCount} total flows`);
 
-      if (mcpFlows.length > 0) {
-        this.homey.log('\n📋 Summary of discovered MCP flows:');
-        mcpFlows.forEach((flow, index) => {
-          const isAdvanced = flow.flowId in advancedFlows;
-          const typeLabel = isAdvanced ? '🔷 Advanced' : '📄 Regular';
-          this.homey.log(`   ${index + 1}. "${flow.flowName}" ${typeLabel}`);
-          this.homey.log(`      Command: ${flow.command}`);
-          this.homey.log(`      Flow ID: ${flow.flowId}`);
-        });
-      } else {
-        this.homey.log('\n⚠️  No flows found using the MCP trigger card!');
-        this.homey.log('   To create an MCP flow:');
-        this.homey.log('   1. Open the Homey app');
-        this.homey.log('   2. Create a new flow (regular or advanced)');
-        this.homey.log('   3. Add trigger: "MCP command received"');
-        this.homey.log('   4. Configure a command name');
-        this.homey.log('   5. Add your desired actions');
-      }
-
-      this.homey.log('');
       return mcpFlows;
     } catch (error) {
-      this.homey.error('╔════════════════════════════════════════════════════════════════════╗');
-      this.homey.error('║           ERROR IN FLOW DISCOVERY                                  ║');
-      this.homey.error('╚════════════════════════════════════════════════════════════════════╝');
-      this.homey.error('❌ FlowManager: Error discovering MCP flows:', error);
-      this.homey.error('Stack trace:', (error as Error).stack);
+      this.homey.error('FlowManager: Error discovering MCP flows:', error);
       return [];
     }
   }
