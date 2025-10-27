@@ -7,6 +7,7 @@ import { FlowManager } from './lib/managers/flow-manager';
 import { ZoneDeviceManager } from './lib/managers/zone-device-manager';
 import { ToolRegistry } from './lib/tools/tool-registry';
 import { MCPServerManager } from './lib/managers/mcp-server-manager';
+import { ToolStateManager } from './lib/managers/tool-state-manager';
 import { MCP_SERVER_CONFIG, JSONRPC_ERROR_CODES } from './lib/constants';
 import { TriggerAnyFlowTool } from './lib/tools/trigger-any-flow-tool';
 import { HomeStructureTool } from './lib/tools/home-structure-tool';
@@ -25,8 +26,8 @@ module.exports = class HomeyMCPApp extends Homey.App {
   private zoneDeviceManager!: ZoneDeviceManager;
   private toolRegistry!: ToolRegistry;
   private mcpServerManager!: MCPServerManager;
+  private toolStateManager!: ToolStateManager;
   private connectedClients: Set<express.Request> = new Set();
-  private lastKnownToolsList: string = '';
 
   /**
    * onInit is called when the app is initialized.
@@ -52,15 +53,17 @@ module.exports = class HomeyMCPApp extends Homey.App {
       await this.zoneDeviceManager.init();
       this.log('Zone & Device Manager initialized');
 
+      // Initialize Tool State Manager
+      this.log('Initializing Tool State Manager...');
+      this.toolStateManager = new ToolStateManager();
+      this.log('Tool State Manager initialized');
+
       // Initialize Tool Registry
       this.log('Initializing Tool Registry...');
       this.toolRegistry = new ToolRegistry();
 
-      // Shared state object for refresh flows tool
-      const sharedState = { value: this.lastKnownToolsList };
-
       // Register all tools
-      this.toolRegistry.register(new RefreshFlowsTool(this.homey, this.flowManager, sharedState));
+      this.toolRegistry.register(new RefreshFlowsTool(this.homey, this.flowManager, this.toolStateManager));
       this.toolRegistry.register(new TriggerAnyFlowTool(this.homey, this.flowManager));
       this.toolRegistry.register(new HomeStructureTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new GetStatesTool(this.homey, this.zoneDeviceManager));

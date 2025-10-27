@@ -6,6 +6,7 @@ import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { FlowManager } from '../managers/flow-manager';
+import { ToolStateManager } from '../managers/tool-state-manager';
 
 /**
  * Tool to manually refresh the list of available MCP flows
@@ -17,7 +18,7 @@ export class RefreshFlowsTool extends BaseTool {
   constructor(
     private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private flowManager: FlowManager,
-    private lastKnownToolsList: { value: string } // Shared state object
+    private toolStateManager: ToolStateManager
   ) {
     super();
   }
@@ -55,12 +56,11 @@ OUTPUT: Shows all discovered flows with their commands and parameters.`,
       const flowTools = await this.flowManager.getToolsFromFlows();
       const newToolsList = JSON.stringify(flowTools);
 
-      // Update cached list
-      const oldToolsList = this.lastKnownToolsList.value;
-      this.lastKnownToolsList.value = newToolsList;
-
       // Check if anything changed
-      const changed = oldToolsList !== newToolsList;
+      const changed = this.toolStateManager.hasChanged(newToolsList);
+
+      // Update cached list
+      this.toolStateManager.setToolsList(newToolsList);
       const toolCount = flowTools.length;
 
       let message = `✅ Flow refresh complete!\n\n`;
