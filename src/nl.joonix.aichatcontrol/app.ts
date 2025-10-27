@@ -127,12 +127,6 @@ module.exports = class HomeyMCPApp extends Homey.App {
     app.post('/mcp', async (req, res) => {
       try {
         const response = await this.mcpServerManager.handleRequest(req.body);
-
-        // Special case: notifications/initialized doesn't need a JSON response
-        if (req.body.method === 'notifications/initialized') {
-          return res.status(200).send();
-        }
-
         res.json(response);
       } catch (error) {
         this.error('MCP request error:', error);
