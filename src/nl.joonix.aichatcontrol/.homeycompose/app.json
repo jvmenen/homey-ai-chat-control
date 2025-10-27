@@ -30,6 +30,18 @@
     "name": "Jeroen van Menen",
     "email": "jeroen@vanmenen.nl"
   },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Jeroen van Menen",
+        "email": "jeroen@vanmenen.nl"
+      }
+    ]
+  },
+  "tags": {
+    "en": ["AI", "MCP", "Model Context Protocol", "Claude", "automation", "natural language"],
+    "nl": ["AI", "MCP", "Model Context Protocol", "Claude", "automatisering", "natuurlijke taal"]
+  },
   "homepage": "https://jvmenen.github.io/homey-ai-chat-control/",
   "support": "https://github.com/jvmenen/homey-ai-chat-control/issues",
   "source": "https://github.com/jvmenen/homey-ai-chat-control",
