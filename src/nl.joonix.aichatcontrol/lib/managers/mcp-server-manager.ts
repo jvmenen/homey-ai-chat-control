@@ -1,5 +1,9 @@
 /**
  * MCP Server Manager - Handles MCP protocol requests
+ *
+ * NAMING CONVENTION:
+ * - `params` = MCP request parameters (contains `name` and `arguments`)
+ * - `args` = Tool-specific arguments passed to tool.execute()
  */
 
 import Homey from 'homey';
@@ -8,10 +12,14 @@ import { FlowManager } from './flow-manager';
 import { MCP_SERVER_CONFIG, JSONRPC_ERROR_CODES } from '../constants';
 import { MCPTool } from '../types';
 
+/**
+ * MCP JSON-RPC request structure
+ */
 export interface MCPRequest {
   jsonrpc: string;
   method: string;
   id: string | number;
+  /** Request parameters - for tools/call, contains `name` and `arguments` */
   params?: Record<string, unknown>;
 }
 
@@ -121,11 +129,11 @@ export class MCPServerManager {
     }
 
     const name = params.name as string;
-    const args = (params.arguments as Record<string, unknown>) || {};
+    const toolArguments = (params.arguments as Record<string, unknown>) || {};
 
     // Try tool registry first
     if (this.toolRegistry.has(name)) {
-      const result = await this.toolRegistry.execute(name, args);
+      const result = await this.toolRegistry.execute(name, toolArguments);
       return this.createSuccess(id, result);
     }
 
@@ -143,7 +151,7 @@ export class MCPServerManager {
         // Delegate to trigger_any_flow - this avoids code duplication
         const result = await this.toolRegistry.execute('trigger_any_flow', {
           command: name,
-          parameters: args || {},
+          parameters: toolArguments || {},
         });
         return this.createSuccess(id, result);
       }
