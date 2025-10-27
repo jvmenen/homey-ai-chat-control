@@ -15,30 +15,6 @@ export const MCP_TRIGGER_IDS = {
 } as const;
 
 /**
- * Common device capability names
- */
-export const CAPABILITY_NAMES = {
-  /** On/Off capability */
-  ONOFF: 'onoff',
-  /** Dim level (0-1) */
-  DIM: 'dim',
-  /** Target temperature (°C) */
-  TARGET_TEMPERATURE: 'target_temperature',
-  /** Measured temperature (°C) */
-  MEASURE_TEMPERATURE: 'measure_temperature',
-  /** Volume level (0-1) */
-  VOLUME_SET: 'volume_set',
-  /** Light hue (0-1) */
-  LIGHT_HUE: 'light_hue',
-  /** Light saturation (0-1) */
-  LIGHT_SATURATION: 'light_saturation',
-  /** Light temperature (0-1) */
-  LIGHT_TEMPERATURE: 'light_temperature',
-  /** Light mode */
-  LIGHT_MODE: 'light_mode',
-} as const;
-
-/**
  * Flow token names for parameter passing
  */
 export const TOKEN_NAMES = {

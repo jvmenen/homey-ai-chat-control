@@ -14,7 +14,7 @@ Shared utilities used across the application for common operations like logging,
 ## Usage
 ```typescript
 import { DeviceNotFoundError } from './utils/errors';
-import { CAPABILITY_NAMES } from './utils/constants';
+import { MCP_SERVER_CONFIG } from './utils/constants';
 
 throw new DeviceNotFoundError(deviceId);
 ```
