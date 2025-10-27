@@ -80,35 +80,6 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.log('Initializing MCP Server Manager...');
       this.mcpServerManager = new MCPServerManager(this.toolRegistry, this.homey, this.flowManager);
       this.log('MCP Server Manager initialized');
-
-      // Setup run listener to validate command argument matching
-      // This ensures only flows with matching command names execute
-      this.log('Setting up run listener for command validation...');
-      mcpCommandTrigger.registerRunListener(async (args: { command: string }, state: { command: string }) => {
-        try {
-          // args.command contains the user-configured command name in the flow (now a string)
-          // state.command contains the triggered command name from MCP
-          const configuredCommand = args.command;
-          const triggeredCommand = state.command;
-
-          this.log(`Run listener: Checking if flow command "${configuredCommand}" matches triggered "${triggeredCommand}"`);
-
-          // Only execute flows where the command names match exactly
-          const shouldRun = configuredCommand === triggeredCommand;
-
-          if (shouldRun) {
-            this.log(`✓ Flow will execute: command match confirmed`);
-          } else {
-            this.log(`✗ Flow will NOT execute: command mismatch`);
-          }
-
-          return shouldRun;
-        } catch (err) {
-          this.error('Run listener error:', err);
-          return false; // Don't execute on error
-        }
-      });
-      this.log('Run listener registered');
     } catch (error) {
       this.error('FATAL ERROR in onInit:', error);
       throw error;
