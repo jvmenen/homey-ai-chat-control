@@ -2,28 +2,30 @@
  * MCP Server Manager - Handles MCP protocol requests
  */
 
+import Homey from 'homey';
 import { ToolRegistry } from '../tools/tool-registry';
 import { FlowManager } from './flow-manager';
 import { MCP_SERVER_CONFIG, JSONRPC_ERROR_CODES } from '../constants';
+import { MCPTool } from '../types';
 
 export interface MCPRequest {
   jsonrpc: string;
   method: string;
   id: string | number;
-  params?: any;
+  params?: Record<string, unknown>;
 }
 
 export interface MCPResponse {
   jsonrpc: string;
   id: string | number;
-  result?: any;
+  result?: unknown;
   error?: MCPError;
 }
 
 export interface MCPError {
   code: number;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -33,7 +35,7 @@ export interface MCPError {
 export class MCPServerManager {
   constructor(
     private toolRegistry: ToolRegistry,
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private flowManager?: FlowManager
   ) {}
 
@@ -71,9 +73,10 @@ export class MCPServerManager {
         default:
           return this.createError(id, JSONRPC_ERROR_CODES.METHOD_NOT_FOUND, `Method not found: ${method}`);
       }
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('MCP request error:', error);
-      return this.createError(id, JSONRPC_ERROR_CODES.INTERNAL_ERROR, 'Internal error: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return this.createError(id, JSONRPC_ERROR_CODES.INTERNAL_ERROR, 'Internal error: ' + errorMessage);
     }
   }
 
@@ -100,7 +103,7 @@ export class MCPServerManager {
     const registryTools = this.toolRegistry.getAllDefinitions();
 
     // Also get flow-based tools if FlowManager is available
-    let flowTools: any[] = [];
+    let flowTools: MCPTool[] = [];
     if (this.flowManager) {
       flowTools = await this.flowManager.getToolsFromFlows();
     }
@@ -112,12 +115,13 @@ export class MCPServerManager {
   /**
    * Handle tools/call request
    */
-  private async handleToolCall(id: string | number, params: any): Promise<MCPResponse> {
+  private async handleToolCall(id: string | number, params: Record<string, unknown> | undefined): Promise<MCPResponse> {
     if (!params || !params.name) {
       return this.createError(id, JSONRPC_ERROR_CODES.INVALID_PARAMS, 'Invalid params: missing tool name');
     }
 
-    const { name, arguments: args } = params;
+    const name = params.name as string;
+    const args = (params.arguments as Record<string, unknown>) || {};
 
     // Try tool registry first
     if (this.toolRegistry.has(name)) {
@@ -188,7 +192,7 @@ export class MCPServerManager {
   /**
    * Create a success response
    */
-  private createSuccess(id: string | number, result: any): MCPResponse {
+  private createSuccess(id: string | number, result: unknown): MCPResponse {
     const response = {
       jsonrpc: '2.0',
       id,
@@ -201,15 +205,16 @@ export class MCPServerManager {
   /**
    * Create an error response
    */
-  private createError(id: string | number, code: number, message: string, data?: any): MCPResponse {
-    const response = {
+  private createError(id: string | number, code: number, message: string, data?: unknown): MCPResponse {
+    const errorObj: MCPError = { code, message };
+    if (data !== undefined) {
+      errorObj.data = data;
+    }
+
+    const response: MCPResponse = {
       jsonrpc: '2.0',
       id,
-      error: {
-        code,
-        message,
-        ...(data && { data }),
-      },
+      error: errorObj,
     };
     this.homey.log('Sending MCP error response:', JSON.stringify(response));
     return response;

@@ -2,6 +2,7 @@
  * Control Device Tool - Universal device capability control
  */
 
+import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { ZoneDeviceManager } from '../managers/zone-device-manager';
@@ -10,7 +11,7 @@ export class ControlDeviceTool extends BaseTool {
   readonly name = 'control_device';
 
   constructor(
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private zoneDeviceManager: ZoneDeviceManager
   ) {
     super();
@@ -61,11 +62,13 @@ NOTE: For lights, prefer set_light (handles dim as 0-100). For zone-wide control
     };
   }
 
-  async execute(args: any): Promise<MCPToolCallResult> {
+  async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
       this.validateRequiredArgs(args, ['deviceId', 'capability', 'value']);
 
-      const { deviceId, capability, value } = args;
+      const deviceId = args.deviceId as string;
+      const capability = args.capability as string;
+      const value = args.value;
       this.homey.log(`🎛️ Controlling device: ${deviceId} - ${capability} = ${value} (type: ${typeof value})`);
 
       await this.zoneDeviceManager.setCapabilityValue(deviceId, capability, value);
@@ -75,9 +78,9 @@ NOTE: For lights, prefer set_light (handles dim as 0-100). For zone-wide control
       return this.createSuccessResponse(
         `✅ Device Controlled Successfully\n\nDevice: ${device?.name || deviceId}\nCapability: ${capability}\nNew Value: ${value}`
       );
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('Error controlling device:', error);
-      return this.createErrorResponse(error);
+      return this.createErrorResponse(error as Error);
     }
   }
 }

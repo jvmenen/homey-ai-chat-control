@@ -2,6 +2,7 @@
  * Control Zone Capability Tool - Bulk control any capability in a zone
  */
 
+import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { ZoneDeviceManager } from '../managers/zone-device-manager';
@@ -10,7 +11,7 @@ export class ControlZoneCapabilityTool extends BaseTool {
   readonly name = 'control_zone_capability';
 
   constructor(
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private zoneDeviceManager: ZoneDeviceManager
   ) {
     super();
@@ -60,11 +61,13 @@ NOTE: For lights specifically, prefer control_zone_lights (more user-friendly).`
     };
   }
 
-  async execute(args: any): Promise<MCPToolCallResult> {
+  async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
       this.validateRequiredArgs(args, ['zoneId', 'capability', 'value']);
 
-      const { zoneId, capability, value } = args;
+      const zoneId = args.zoneId as string;
+      const capability = args.capability as string;
+      const value = args.value;
       this.homey.log(`⚡ Controlling zone capability: ${zoneId} - ${capability} = ${value}`);
 
       const result = await this.zoneDeviceManager.setZoneDeviceCapability(zoneId, capability, value);
@@ -84,9 +87,9 @@ NOTE: For lights specifically, prefer control_zone_lights (more user-friendly).`
       });
 
       return this.createSuccessResponse(message);
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('Error controlling zone capability:', error);
-      return this.createErrorResponse(error);
+      return this.createErrorResponse(error as Error);
     }
   }
 }

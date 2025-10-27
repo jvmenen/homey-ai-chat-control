@@ -2,6 +2,7 @@
  * Toggle Device Tool - Toggle device on/off state
  */
 
+import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { ZoneDeviceManager } from '../managers/zone-device-manager';
@@ -10,7 +11,7 @@ export class ToggleDeviceTool extends BaseTool {
   readonly name = 'toggle_device';
 
   constructor(
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private zoneDeviceManager: ZoneDeviceManager
   ) {
     super();
@@ -44,11 +45,11 @@ NOTE: This reads current state first, then sets opposite. For explicit on/off, u
     };
   }
 
-  async execute(args: any): Promise<MCPToolCallResult> {
+  async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
       this.validateRequiredArgs(args, ['deviceId']);
 
-      const deviceId = args.deviceId;
+      const deviceId = args.deviceId as string;
       this.homey.log(`🔄 Toggling device: ${deviceId}`);
 
       const newState = await this.zoneDeviceManager.toggleDevice(deviceId);
@@ -57,9 +58,9 @@ NOTE: This reads current state first, then sets opposite. For explicit on/off, u
       return this.createSuccessResponse(
         `✅ Device Toggled\n\nDevice: ${device?.name || deviceId}\nNew State: ${newState ? 'ON' : 'OFF'}`
       );
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('Error toggling device:', error);
-      return this.createErrorResponse(error);
+      return this.createErrorResponse(error as Error);
     }
   }
 }

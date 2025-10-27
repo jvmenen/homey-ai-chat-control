@@ -8,7 +8,7 @@ export interface DeviceCapability {
   type: string;
   min?: number;
   max?: number;
-  values?: any[];
+  values?: unknown[];
 }
 
 /**
@@ -19,11 +19,11 @@ export class CapabilityValueConverter {
   /**
    * Convert and validate a value based on capability definition
    */
-  static convert(capabilityDef: DeviceCapability, value: any): any {
+  static convert(capabilityDef: DeviceCapability, value: unknown): unknown {
     const { type } = capabilityDef;
 
     // Convert based on type
-    let convertedValue: any;
+    let convertedValue: unknown;
 
     switch (type) {
       case 'boolean':
@@ -54,7 +54,7 @@ export class CapabilityValueConverter {
    * Convert value to boolean
    * Handles string "true"/"false", numbers 1/0, and boolean values
    */
-  private static toBoolean(value: any): boolean {
+  private static toBoolean(value: unknown): boolean {
     if (typeof value === 'boolean') {
       return value;
     }
@@ -81,7 +81,7 @@ export class CapabilityValueConverter {
    * Convert value to number
    * Handles string numbers and numeric values
    */
-  private static toNumber(value: any): number {
+  private static toNumber(value: unknown): number {
     if (typeof value === 'number') {
       return value;
     }
@@ -100,7 +100,7 @@ export class CapabilityValueConverter {
   /**
    * Convert value to string
    */
-  private static toString(value: any): string {
+  private static toString(value: unknown): string {
     if (typeof value === 'string') {
       return value;
     }
@@ -111,7 +111,7 @@ export class CapabilityValueConverter {
   /**
    * Validate converted value against capability constraints
    */
-  private static validate(capabilityDef: DeviceCapability, value: any): void {
+  private static validate(capabilityDef: DeviceCapability, value: unknown): void {
     const { type, min, max, values } = capabilityDef;
 
     // Type validation after conversion
@@ -124,7 +124,7 @@ export class CapabilityValueConverter {
     }
 
     // Range validation for numbers
-    if (type === 'number') {
+    if (type === 'number' && typeof value === 'number') {
       if (min !== undefined && value < min) {
         throw new CapabilityValueError(`Value ${value} is below minimum ${min}`);
       }

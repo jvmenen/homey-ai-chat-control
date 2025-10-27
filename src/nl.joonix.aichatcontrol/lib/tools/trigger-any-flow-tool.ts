@@ -2,6 +2,7 @@
  * Trigger Any Flow Tool - Execute any Homey flow by command name
  */
 
+import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { FlowManager } from '../managers/flow-manager';
@@ -14,7 +15,7 @@ export class TriggerAnyFlowTool extends BaseTool {
   readonly name = 'trigger_any_flow';
 
   constructor(
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private flowManager: FlowManager
   ) {
     super();
@@ -64,12 +65,12 @@ NOTE: This is a workaround. Flows triggered this way work immediately, but won't
     };
   }
 
-  async execute(args: any): Promise<MCPToolCallResult> {
+  async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
       this.validateRequiredArgs(args, ['command']);
 
-      const commandName = args.command;
-      const parameters = args.parameters || {};
+      const commandName = args.command as string;
+      const parameters = (args.parameters as Record<string, unknown>) || {};
 
       this.homey.log('🎯 Generic flow trigger requested');
       this.homey.log(`   Command: ${commandName}`);
@@ -86,9 +87,9 @@ NOTE: This is a workaround. Flows triggered this way work immediately, but won't
           `Failed to trigger flow: ${commandName}\n${result.message || 'Unknown error'}`
         );
       }
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('Error triggering flow:', error);
-      return this.createErrorResponse(error);
+      return this.createErrorResponse(error as Error);
     }
   }
 }

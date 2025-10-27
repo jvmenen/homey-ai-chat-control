@@ -40,7 +40,7 @@ export class ToolRegistry {
    * @returns Tool execution result
    * @throws Error if tool not found
    */
-  async execute(name: string, args: any): Promise<MCPToolCallResult> {
+  async execute(name: string, args: Record<string, unknown>): Promise<MCPToolCallResult> {
     const tool = this.tools.get(name);
 
     if (!tool) {
@@ -49,13 +49,14 @@ export class ToolRegistry {
 
     try {
       return await tool.execute(args);
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       // Return formatted error response
       return {
         content: [
           {
             type: 'text',
-            text: `❌ Error executing tool '${name}': ${error.message}`,
+            text: `❌ Error executing tool '${name}': ${errorMessage}`,
           },
         ],
         isError: true,

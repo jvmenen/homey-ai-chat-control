@@ -2,6 +2,7 @@
  * Home Structure Tool - Get complete home layout
  */
 
+import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { ZoneDeviceManager } from '../managers/zone-device-manager';
@@ -15,7 +16,7 @@ export class HomeStructureTool extends BaseTool {
   readonly name = 'get_home_structure';
 
   constructor(
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private zoneDeviceManager: ZoneDeviceManager
   ) {
     super();
@@ -48,7 +49,7 @@ BEST PRACTICE: Call get_home_structure first, then use get_states to get current
     };
   }
 
-  async execute(args: any): Promise<MCPToolCallResult> {
+  async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
       this.homey.log('🏠 Getting complete home structure (static data)');
 
@@ -56,9 +57,9 @@ BEST PRACTICE: Call get_home_structure first, then use get_states to get current
       const formattedXML = XMLFormatter.formatHomeStructure(structure);
 
       return this.createSuccessResponse(formattedXML);
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('Error getting home structure:', error);
-      return this.createErrorResponse(error);
+      return this.createErrorResponse(error as Error);
     }
   }
 }

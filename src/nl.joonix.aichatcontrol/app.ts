@@ -2,6 +2,7 @@
 
 import Homey from 'homey';
 import express from 'express';
+import { Server } from 'http';
 import { FlowManager } from './lib/managers/flow-manager';
 import { ZoneDeviceManager } from './lib/managers/zone-device-manager';
 import { ToolRegistry } from './lib/tools/tool-registry';
@@ -19,12 +20,12 @@ import { ControlZoneLightsTool } from './lib/tools/control-zone-lights-tool';
 import { ControlZoneCapabilityTool } from './lib/tools/control-zone-capability-tool';
 
 module.exports = class HomeyMCPApp extends Homey.App {
-  private httpServer: any;
+  private httpServer!: Server;
   private flowManager!: FlowManager;
   private zoneDeviceManager!: ZoneDeviceManager;
   private toolRegistry!: ToolRegistry;
   private mcpServerManager!: MCPServerManager;
-  private connectedClients: Set<any> = new Set();
+  private connectedClients: Set<express.Request> = new Set();
   private lastKnownToolsList: string = '';
 
   /**
@@ -80,7 +81,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
       // Setup run listener to validate command argument matching
       // This ensures only flows with matching command names execute
       this.log('Setting up run listener for command validation...');
-      mcpCommandTrigger.registerRunListener(async (args: any, state: any) => {
+      mcpCommandTrigger.registerRunListener(async (args: { command: string }, state: { command: string }) => {
         try {
           // args.command contains the user-configured command name in the flow (now a string)
           // state.command contains the triggered command name from MCP
@@ -131,14 +132,15 @@ module.exports = class HomeyMCPApp extends Homey.App {
         }
 
         res.json(response);
-      } catch (error: any) {
+      } catch (error) {
         this.error('MCP request error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({
           jsonrpc: '2.0',
           id: req.body?.id || null,
           error: {
             code: JSONRPC_ERROR_CODES.INTERNAL_ERROR,
-            message: 'Internal error: ' + error.message,
+            message: 'Internal error: ' + errorMessage,
           },
         });
       }
@@ -153,7 +155,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.log(`✓ Health check: http://<homey-ip>:${port}/health`);
     });
 
-    this.httpServer.on('error', (error: any) => {
+    this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
       if (error.code === 'EADDRINUSE') {
         this.error(`Port ${port} is already in use!`);
       } else {

@@ -2,6 +2,8 @@
  * Zone & Device Manager - Handles Homey zones and devices discovery and reading
  */
 
+import Homey from 'homey';
+import type { HomeyAPI } from 'homey-api';
 import {
   HomeyZone,
   HomeyDevice,
@@ -12,9 +14,45 @@ import {
 } from '../types';
 import { CapabilityValueConverter } from '../utils/capability-value-converter';
 
+// Type for Homey API device/zone objects (simplified interface)
+interface HomeyAPIDevice {
+  id: string;
+  name: string;
+  zone: string;
+  driverId?: string;
+  class: string;
+  capabilities: string[];
+  capabilitiesObj: Record<string, {
+    id: string;
+    value: unknown;
+    getable: boolean;
+    setable: boolean;
+    type?: string;
+    units?: string;
+    min?: number;
+    max?: number;
+    [key: string]: unknown;
+  }>;
+  available?: boolean;
+  ready?: boolean;
+  setCapabilityValue: (capability: string, value: unknown) => Promise<void>;
+  [key: string]: unknown;
+}
+
+interface HomeyAPIZone {
+  id: string;
+  name: string;
+  parent?: string | null;
+  icon?: string;
+  active?: boolean;
+  activeOrigins?: string[];
+  activeLastUpdated?: string | null;
+  [key: string]: unknown;
+}
+
 export class ZoneDeviceManager {
-  private homey: any;
-  private homeyApi: any;
+  private homey: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+  private homeyApi!: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- HomeyAPI types are incomplete
   private initialized: boolean = false;
   private isDestroying: boolean = false;
 
@@ -90,7 +128,7 @@ export class ZoneDeviceManager {
 
     try {
       const zonesObj = await this.homeyApi.zones.getZones();
-      const zones: HomeyZone[] = Object.values(zonesObj).map((zone: any) => ({
+      const zones: HomeyZone[] = (Object.values(zonesObj) as HomeyAPIZone[]).map((zone) => ({
         id: zone.id,
         name: zone.name,
         parent: zone.parent || null,
@@ -195,11 +233,29 @@ export class ZoneDeviceManager {
 
       // Build zone name lookup map
       const zoneNameMap = new Map<string, string>();
-      Object.values(zonesObj).forEach((zone: any) => {
+      (Object.values(zonesObj) as HomeyAPIZone[]).forEach((zone) => {
         zoneNameMap.set(zone.id, zone.name);
       });
 
-      const devices: HomeyDevice[] = Object.values(devicesObj).map((device: any) => {
+      const devices: HomeyDevice[] = (Object.values(devicesObj) as HomeyAPIDevice[]).map((device) => {
+        // Convert HomeyAPI capabilities to our DeviceCapability type
+        const capabilitiesObj: Record<string, DeviceCapability> = {};
+        if (device.capabilitiesObj) {
+          for (const [capId, capObj] of Object.entries(device.capabilitiesObj)) {
+            capabilitiesObj[capId] = {
+              id: capObj.id,
+              value: capObj.value,
+              type: capObj.type || 'string',
+              title: capId, // Use capability ID as title fallback
+              units: capObj.units,
+              getable: capObj.getable,
+              setable: capObj.setable,
+              min: capObj.min,
+              max: capObj.max,
+            };
+          }
+        }
+
         return {
           id: device.id,
           name: device.name,
@@ -208,7 +264,7 @@ export class ZoneDeviceManager {
           driverUri: device.driverId || 'unknown', // Use driverId instead of deprecated driverUri
           class: device.class,
           capabilities: device.capabilities || [],
-          capabilitiesObj: device.capabilitiesObj || {},
+          capabilitiesObj,
           available: device.available !== false,
           ready: device.ready !== false,
         };
@@ -298,7 +354,7 @@ export class ZoneDeviceManager {
   /**
    * Get capability value from a device
    */
-  async getCapabilityValue(deviceId: string, capability: string): Promise<any> {
+  async getCapabilityValue(deviceId: string, capability: string): Promise<unknown> {
     await this.init();
 
     try {
@@ -369,7 +425,7 @@ export class ZoneDeviceManager {
           readings.push({
             deviceId: device.id,
             deviceName: device.name,
-            temperature,
+            temperature: typeof temperature === 'number' ? temperature : parseFloat(String(temperature)),
             units: capabilityObj?.units || '°C',
           });
         } catch (error) {
@@ -412,7 +468,7 @@ export class ZoneDeviceManager {
   /**
    * Set a capability value on a device (WRITE operation)
    */
-  async setCapabilityValue(deviceId: string, capability: string, value: any): Promise<void> {
+  async setCapabilityValue(deviceId: string, capability: string, value: unknown): Promise<void> {
     await this.init();
 
     try {
@@ -538,8 +594,9 @@ export class ZoneDeviceManager {
 
           results.success++;
           results.devices.push(light.name);
-        } catch (error: any) {
-          this.homey.error(`Failed to control ${light.name}:`, error.message);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          this.homey.error(`Failed to control ${light.name}:`, errorMessage);
           results.failed++;
         }
       }
@@ -557,7 +614,7 @@ export class ZoneDeviceManager {
   async setZoneDeviceCapability(
     zoneId: string,
     capability: string,
-    value: any
+    value: unknown
   ): Promise<{ success: number; failed: number; devices: string[] }> {
     await this.init();
 
@@ -593,8 +650,9 @@ export class ZoneDeviceManager {
           await this.setCapabilityValue(device.id, capability, value);
           results.success++;
           results.devices.push(device.name);
-        } catch (error: any) {
-          this.homey.error(`Failed to set ${capability} on ${device.name}:`, error.message);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          this.homey.error(`Failed to set ${capability} on ${device.name}:`, errorMessage);
           results.failed++;
         }
       }
@@ -614,14 +672,26 @@ export class ZoneDeviceManager {
    * Convert and validate a capability value before setting it
    * Handles type conversion from JSON strings to correct types
    */
-  private convertAndValidateValue(capabilityObj: any, value: any): any {
-    return CapabilityValueConverter.convert(capabilityObj, value);
+  private convertAndValidateValue(capabilityObj: HomeyAPIDevice['capabilitiesObj'][string], value: unknown): unknown {
+    // Convert HomeyAPI capability object to DeviceCapability interface
+    const deviceCap: DeviceCapability = {
+      id: capabilityObj.id,
+      value: capabilityObj.value,
+      type: capabilityObj.type || 'string',
+      title: capabilityObj.id, // Fallback to ID
+      getable: capabilityObj.getable,
+      setable: capabilityObj.setable,
+      units: capabilityObj.units,
+      min: capabilityObj.min,
+      max: capabilityObj.max,
+    };
+    return CapabilityValueConverter.convert(deviceCap, value);
   }
 
   /**
    * Validate a capability value before setting it (legacy method)
    */
-  private validateCapabilityValue(capabilityObj: any, value: any): void {
+  private validateCapabilityValue(capabilityObj: HomeyAPIDevice['capabilitiesObj'][string], value: unknown): void {
     // Just call the new convert and validate method (but ignore the converted value)
     this.convertAndValidateValue(capabilityObj, value);
   }
@@ -708,7 +778,7 @@ export class ZoneDeviceManager {
       name: string;
       zone: string;
       class: string;
-      capabilities: Record<string, any>;
+      capabilities: Record<string, unknown>;
     }>;
     activeZones?: Array<{
       id: string;
@@ -746,7 +816,7 @@ export class ZoneDeviceManager {
       // Read current values for all capabilities (or just filtered one)
       const deviceStates = await Promise.all(
         devices.map(async device => {
-          const capabilities: Record<string, any> = {};
+          const capabilities: Record<string, unknown> = {};
 
           // Determine which capabilities to read
           const capsToRead = filters?.capability

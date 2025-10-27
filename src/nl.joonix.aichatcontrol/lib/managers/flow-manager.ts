@@ -2,20 +2,50 @@
  * Flow Manager - Handles Homey flow discovery and execution
  */
 
+import Homey from 'homey';
+import type { HomeyAPI } from 'homey-api';
 import { HomeyFlow, MCPTool, FlowExecutionResult } from '../types';
 import { FlowParser } from '../parsers/flow-parser';
 import { TOKEN_NAMES } from '../constants';
 
+// Type for flow trigger card - use any due to Homey namespace type issues
+type FlowTriggerCard = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+// Type for flow objects from Homey API (simplified, as the actual type is complex)
+interface HomeyAPIFlow {
+  id?: string;
+  name: string;
+  enabled?: boolean;
+  type?: string;
+  trigger?: {
+    id: string;
+    uri?: string;
+    args?: Record<string, unknown>;
+  };
+  cards?: Record<string, {
+    id?: string;
+    type: string;
+    uri?: string;
+    args?: Record<string, unknown>;
+  }> | Array<{
+    id?: string;
+    type: string;
+    uri?: string;
+    args?: Record<string, unknown>;
+  }>;
+  [key: string]: unknown;
+}
+
 export class FlowManager {
-  private homey: any;
-  private homeyApi: any;
+  private homey: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+  private homeyApi!: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- HomeyAPI types are incomplete
   private initialized: boolean = false;
-  private triggerCard: any;
+  private triggerCard: FlowTriggerCard;
   private availableCommands: Set<string> = new Set();
   // Cache parameter order per command for correct token mapping
   private commandParameterOrder: Map<string, string[]> = new Map();
 
-  constructor(homey: any, triggerCard: any) {
+  constructor(homey: any, triggerCard: FlowTriggerCard) {
     this.homey = homey;
     this.triggerCard = triggerCard;
   }
@@ -49,7 +79,7 @@ export class FlowManager {
       const allFlows = await this.homeyApi.flow.getFlows();
 
       // Filter flows with mcp_ prefix
-      const mcpFlows = Object.values(allFlows).filter((flow: any) =>
+      const mcpFlows = (Object.values(allFlows) as HomeyAPIFlow[]).filter((flow) =>
         flow.name && flow.name.toLowerCase().startsWith('mcp_')
       ) as HomeyFlow[];
 
@@ -116,7 +146,7 @@ export class FlowManager {
         this.homey.log('│ Analyzing first flow to understand structure...                  │');
         this.homey.log('└───────────────────────────────────────────────────────────────────┘');
 
-        const firstFlowData = firstFlow as any;
+        const firstFlowData = firstFlow as HomeyAPIFlow;
         this.homey.log(`  📋 Flow name: "${firstFlowData.name}"`);
         this.homey.log(`  🆔 Flow ID: ${Object.keys(allFlows)[0]}`);
         this.homey.log(`  🏷️  Flow type: ${firstFlowData.type || 'unknown'}`);
@@ -140,7 +170,7 @@ export class FlowManager {
 
           if (Array.isArray(firstFlowData.cards)) {
             this.homey.log(`    - Cards count: ${firstFlowData.cards.length}`);
-            this.homey.log(`    - Card types: ${firstFlowData.cards.map((c: any) => c.type).join(', ')}`);
+            this.homey.log(`    - Card types: ${firstFlowData.cards.map(c => c.type).join(', ')}`);
           } else {
             const cardKeys = Object.keys(firstFlowData.cards);
             this.homey.log(`    - Cards count: ${cardKeys.length}`);
@@ -149,7 +179,7 @@ export class FlowManager {
             // Show types of first few cards
             const cardTypes = Object.values(firstFlowData.cards)
               .slice(0, 5)
-              .map((c: any) => c.type)
+              .map(c => c.type)
               .filter(Boolean);
             if (cardTypes.length > 0) {
               this.homey.log(`    - Card types (sample): ${cardTypes.join(', ')}`);
@@ -168,7 +198,7 @@ export class FlowManager {
       let flowIndex = 0;
       for (const [flowId, flow] of Object.entries(allFlows)) {
         flowIndex++;
-        const flowData = flow as any;
+        const flowData = flow as HomeyAPIFlow;
         const flowName = flowData.name || 'Unnamed flow';
 
         // Determine if this is a regular or advanced flow
@@ -266,11 +296,11 @@ export class FlowManager {
    *   mode: string(on|off) - Device mode
    */
   private parseParameters(description?: string): {
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     required: string[];
     parameterNames: string[];
   } {
-    const properties: Record<string, any> = {};
+    const properties: Record<string, unknown> = {};
     const required: string[] = [];
     const parameterNames: string[] = [];
 
@@ -289,7 +319,7 @@ export class FlowManager {
       parameterNames.push(paramName);
 
       // Build property schema
-      const propSchema: any = {
+      const propSchema: Record<string, unknown> = {
         type: paramType,
         description: paramDescription.trim(),
       };
@@ -491,14 +521,15 @@ export class FlowManager {
         success: true,
         message: `Command '${toolName}' triggered successfully`,
       };
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('========================================');
       this.homey.error(`✗ FlowManager: Failed to trigger command "${toolName}"`);
       this.homey.error('Error:', error);
       this.homey.error('========================================');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
-        error: error.message || 'Unknown error',
+        error: errorMessage,
       };
     }
   }
@@ -513,8 +544,8 @@ export class FlowManager {
 
     try {
       const flows = await this.homeyApi.flow.getFlows();
-      const flow = Object.values(flows).find(
-        (f: any) => f.name.toLowerCase() === flowName.toLowerCase()
+      const flow = (Object.values(flows) as HomeyAPIFlow[]).find(
+        (f) => f.name.toLowerCase() === flowName.toLowerCase()
       ) as HomeyFlow | undefined;
 
       return flow || null;

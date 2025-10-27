@@ -2,6 +2,7 @@
  * Set Thermostat Tool - Control thermostat temperature
  */
 
+import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { ZoneDeviceManager } from '../managers/zone-device-manager';
@@ -10,7 +11,7 @@ export class SetThermostatTool extends BaseTool {
   readonly name = 'set_thermostat';
 
   constructor(
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private zoneDeviceManager: ZoneDeviceManager
   ) {
     super();
@@ -48,11 +49,12 @@ NOTE: This only sets the TARGET temperature, not current temperature (which is r
     };
   }
 
-  async execute(args: any): Promise<MCPToolCallResult> {
+  async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
       this.validateRequiredArgs(args, ['deviceId', 'temperature']);
 
-      const { deviceId, temperature } = args;
+      const deviceId = args.deviceId as string;
+      const temperature = args.temperature as number;
       this.homey.log(`🌡️ Setting thermostat: ${deviceId} - ${temperature}°C`);
 
       const device = await this.zoneDeviceManager.getDevice(deviceId);
@@ -70,9 +72,9 @@ NOTE: This only sets the TARGET temperature, not current temperature (which is r
       return this.createSuccessResponse(
         `🌡️ Thermostat Set\n\nDevice: ${device.name}\nTarget Temperature: ${temperature}°C`
       );
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('Error setting thermostat:', error);
-      return this.createErrorResponse(error);
+      return this.createErrorResponse(error as Error);
     }
   }
 }

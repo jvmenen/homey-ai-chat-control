@@ -2,6 +2,7 @@
  * Set Light Tool - User-friendly light control with 0-100 dim values
  */
 
+import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { ZoneDeviceManager } from '../managers/zone-device-manager';
@@ -10,7 +11,7 @@ export class SetLightTool extends BaseTool {
   readonly name = 'set_light';
 
   constructor(
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private zoneDeviceManager: ZoneDeviceManager
   ) {
     super();
@@ -65,11 +66,13 @@ EXAMPLES:
     };
   }
 
-  async execute(args: any): Promise<MCPToolCallResult> {
+  async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
       this.validateRequiredArgs(args, ['deviceId', 'state']);
 
-      const { deviceId, state, dim } = args;
+      const deviceId = args.deviceId as string;
+      const state = args.state as 'on' | 'off' | 'toggle';
+      const dim = args.dim as number | undefined;
       this.homey.log(`💡 Setting light: ${deviceId} - ${state} ${dim ? `(dim: ${dim}%)` : ''}`);
 
       const device = await this.zoneDeviceManager.getDevice(deviceId);
@@ -91,8 +94,8 @@ EXAMPLES:
         await this.zoneDeviceManager.setCapabilityValue(deviceId, 'onoff', onValue);
 
         // Set dim level if provided and turning on
-        if (dim !== undefined && onValue && device.capabilities.includes('dim')) {
-          const dimValue = dim / 100; // Convert 0-100 to 0-1
+        if (dim !== undefined && dim !== null && onValue && device.capabilities.includes('dim')) {
+          const dimValue = Number(dim) / 100; // Convert 0-100 to 0-1
           await this.zoneDeviceManager.setCapabilityValue(deviceId, 'dim', dimValue);
         }
       }
@@ -103,9 +106,9 @@ EXAMPLES:
       }
 
       return this.createSuccessResponse(message);
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('Error setting light:', error);
-      return this.createErrorResponse(error);
+      return this.createErrorResponse(error as Error);
     }
   }
 }

@@ -16,6 +16,27 @@ export interface MCPFlowInfo {
   cardId?: string; // Optional: ID of the specific trigger card (for advanced flows with multiple triggers)
 }
 
+// Type for flow objects from Homey API
+interface HomeyAPIFlow {
+  id?: string;
+  name: string;
+  enabled?: boolean;
+  trigger?: {
+    id: string;
+    args?: Record<string, unknown>;
+  };
+  cards?: Record<string, {
+    id?: string;
+    type: string;
+    args?: Record<string, unknown>;
+  }> | Array<{
+    id?: string;
+    type: string;
+    args?: Record<string, unknown>;
+  }>;
+  [key: string]: unknown;
+}
+
 /**
  * Parser for extracting MCP command information from Homey flows
  * Handles both simple flows and advanced flows
@@ -31,7 +52,7 @@ export class FlowParser {
    * @param flow - Flow data from Homey API
    * @returns Array of MCPFlowInfo (can be multiple for advanced flows with multiple MCP triggers)
    */
-  parseFlow(flow: any): MCPFlowInfo[] {
+  parseFlow(flow: HomeyAPIFlow): MCPFlowInfo[] {
     // Skip disabled flows
     if (flow.enabled === false) {
       return [];
@@ -54,8 +75,8 @@ export class FlowParser {
   /**
    * Parse a simple flow (has single trigger property)
    */
-  private parseSimpleFlow(flow: any): MCPFlowInfo | null {
-    if (!this.isMCPTrigger(flow.trigger.id)) {
+  private parseSimpleFlow(flow: HomeyAPIFlow): MCPFlowInfo | null {
+    if (!flow.trigger || !this.isMCPTrigger(flow.trigger.id)) {
       return null;
     }
 
@@ -66,16 +87,18 @@ export class FlowParser {
    * Parse an advanced flow (has cards array or object)
    * Can return multiple MCPFlowInfo if the flow has multiple MCP trigger cards
    */
-  private parseAdvancedFlow(flow: any): MCPFlowInfo[] {
+  private parseAdvancedFlow(flow: HomeyAPIFlow): MCPFlowInfo[] {
     const results: MCPFlowInfo[] = [];
-    const cardsObj = Array.isArray(flow.cards) ? flow.cards : flow.cards;
+
+    if (!flow.cards) {
+      return results;
+    }
 
     // For object-style cards, we need to iterate over entries to get card IDs
     if (!Array.isArray(flow.cards)) {
-      for (const [cardId, card] of Object.entries(cardsObj)) {
-        const cardData = card as any;
-        if (cardData.type === 'trigger' && this.isMCPTrigger(cardData.id)) {
-          const flowInfo = this.extractFlowInfo(flow, cardData.args, cardId);
+      for (const [cardId, card] of Object.entries(flow.cards)) {
+        if (card.type === 'trigger' && card.id && this.isMCPTrigger(card.id)) {
+          const flowInfo = this.extractFlowInfo(flow, card.args, cardId);
           if (flowInfo) {
             results.push(flowInfo);
           }
@@ -83,8 +106,8 @@ export class FlowParser {
       }
     } else {
       // Array-style cards
-      for (const card of cardsObj) {
-        if (card.type === 'trigger' && this.isMCPTrigger(card.id)) {
+      for (const card of flow.cards) {
+        if (card.type === 'trigger' && card.id && this.isMCPTrigger(card.id)) {
           const flowInfo = this.extractFlowInfo(flow, card.args);
           if (flowInfo) {
             results.push(flowInfo);
@@ -110,7 +133,7 @@ export class FlowParser {
   /**
    * Extract flow information from trigger args
    */
-  private extractFlowInfo(flow: any, args: any, cardId?: string): MCPFlowInfo | null {
+  private extractFlowInfo(flow: HomeyAPIFlow, args: Record<string, unknown> | undefined, cardId?: string): MCPFlowInfo | null {
     const command = args?.command;
 
     // Validate command
@@ -118,12 +141,14 @@ export class FlowParser {
       return null;
     }
 
+    const flowId = flow.id || 'unknown';
+
     return {
-      flowId: flow.id,
+      flowId,
       flowName: flow.name,
       command,
-      description: args?.description || undefined,
-      parameters: args?.parameters || undefined,
+      description: typeof args?.description === 'string' ? args.description : undefined,
+      parameters: typeof args?.parameters === 'string' ? args.parameters : undefined,
       cardId,
     };
   }

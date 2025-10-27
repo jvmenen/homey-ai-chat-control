@@ -22,7 +22,7 @@ export interface MCPToolHandler {
    * @param args - Arguments from MCP tools/call request
    * @returns Tool execution result with content array
    */
-  execute(args: any): Promise<MCPToolCallResult>;
+  execute(args: Record<string, unknown>): Promise<MCPToolCallResult>;
 }
 
 /**
@@ -32,7 +32,7 @@ export interface MCPToolHandler {
 export abstract class BaseTool implements MCPToolHandler {
   abstract readonly name: string;
   abstract getDefinition(): MCPTool;
-  abstract execute(args: any): Promise<MCPToolCallResult>;
+  abstract execute(args: Record<string, unknown>): Promise<MCPToolCallResult>;
 
   /**
    * Create a successful tool response
@@ -72,7 +72,7 @@ export abstract class BaseTool implements MCPToolHandler {
    * @param required - Array of required argument names
    * @throws Error if any required argument is missing
    */
-  protected validateRequiredArgs(args: any, required: string[]): void {
+  protected validateRequiredArgs(args: Record<string, unknown>, required: string[]): void {
     const missing = required.filter(
       (name) => args[name] === undefined || args[name] === null
     );

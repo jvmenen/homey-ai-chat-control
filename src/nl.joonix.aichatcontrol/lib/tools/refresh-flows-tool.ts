@@ -2,6 +2,7 @@
  * Refresh Flows Tool - Manually refresh list of available Homey flows
  */
 
+import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { FlowManager } from '../managers/flow-manager';
@@ -14,7 +15,7 @@ export class RefreshFlowsTool extends BaseTool {
   readonly name = 'refresh_homey_flows';
 
   constructor(
-    private homey: any,
+    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
     private flowManager: FlowManager,
     private lastKnownToolsList: { value: string } // Shared state object
   ) {
@@ -46,7 +47,7 @@ OUTPUT: Shows all discovered flows with their commands and parameters.`,
     };
   }
 
-  async execute(args: any): Promise<MCPToolCallResult> {
+  async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
       this.homey.log('🔄 Manual flow refresh requested by Claude');
 
@@ -106,9 +107,9 @@ OUTPUT: Shows all discovered flows with their commands and parameters.`,
       this.homey.log(`✅ Flow refresh complete: ${toolCount} flows, changed: ${changed}`);
 
       return this.createSuccessResponse(message);
-    } catch (error: any) {
+    } catch (error) {
       this.homey.error('Error refreshing flows:', error);
-      return this.createErrorResponse(error);
+      return this.createErrorResponse(error as Error);
     }
   }
 }

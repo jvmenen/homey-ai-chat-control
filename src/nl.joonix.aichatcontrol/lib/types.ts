@@ -149,7 +149,7 @@ export interface DeviceCapability {
   /** Capability ID (e.g., 'onoff', 'dim', 'target_temperature') */
   id: string;
   /** Current value of the capability */
-  value: any;
+  value: unknown;
   /** Data type ('boolean', 'number', 'string', 'enum') */
   type: string;
   /** Human-readable title */
