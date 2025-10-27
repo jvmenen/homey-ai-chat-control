@@ -87,13 +87,3 @@ export const JSONRPC_ERROR_CODES = {
   /** Internal error */
   INTERNAL_ERROR: -32603,
 } as const;
-
-/**
- * Cache configuration (for future use when Task #9 is implemented)
- */
-export const CACHE_CONFIG = {
-  /** Cache TTL in milliseconds (5 seconds) */
-  TTL: 5000,
-  /** Maximum cache size */
-  MAX_SIZE: 1000,
-} as const;

@@ -696,14 +696,6 @@ export class ZoneDeviceManager {
     return CapabilityValueConverter.convert(deviceCap, value);
   }
 
-  /**
-   * Validate a capability value before setting it (legacy method)
-   */
-  private validateCapabilityValue(capabilityObj: HomeyAPIDevice['capabilitiesObj'][string], value: unknown): void {
-    // Just call the new convert and validate method (but ignore the converted value)
-    this.convertAndValidateValue(capabilityObj, value);
-  }
-
   // ============================================================================
   // COMBINED SNAPSHOT OPERATIONS (Efficient data retrieval)
   // ============================================================================

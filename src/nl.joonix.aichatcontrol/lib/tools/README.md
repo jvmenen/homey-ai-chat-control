@@ -16,4 +16,4 @@ Each tool is a self-contained class that implements the `MCPToolHandler` interfa
 3. Register in `app.ts` during initialization
 
 ## Examples
-See `hello-homey-tool.ts` (when implemented) for a simple example.
+See `set-light-tool.ts` or `home-structure-tool.ts` for examples.
