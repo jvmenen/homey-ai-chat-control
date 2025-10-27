@@ -117,15 +117,14 @@ module.exports = class HomeyMCPApp extends Homey.App {
     // Create Express app for HTTP endpoints
     const app = express();
     app.use(express.json());
-    app.use(express.raw({ type: 'application/json' }));
 
     // Health check endpoint
     app.get('/health', (req, res) => {
       res.json({ status: 'ok', message: 'Homey MCP Server is running' });
     });
 
-    // Main MCP endpoint - handle as raw HTTP transport
-    app.post('/mcp', express.json(), async (req, res) => {
+    // Main MCP endpoint
+    app.post('/mcp', async (req, res) => {
       try {
         const response = await this.mcpServerManager.handleRequest(req.body);
 
