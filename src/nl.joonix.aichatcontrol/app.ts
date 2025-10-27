@@ -27,7 +27,6 @@ module.exports = class HomeyMCPApp extends Homey.App {
   private toolRegistry!: ToolRegistry;
   private mcpServerManager!: MCPServerManager;
   private toolStateManager!: ToolStateManager;
-  private connectedClients: Set<express.Request> = new Set();
 
   /**
    * onInit is called when the app is initialized.
