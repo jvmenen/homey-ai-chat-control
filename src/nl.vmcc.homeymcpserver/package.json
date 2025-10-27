@@ -1,5 +1,5 @@
 {
-  "name": "nl.vmcc.homeymcpserver",
+  "name": "nl.joonix.aichatcontrol",
   "version": "1.0.0",
   "scripts": {
     "build": "tsc",

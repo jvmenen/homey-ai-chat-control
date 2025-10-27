@@ -7,11 +7,11 @@
  */
 export const MCP_TRIGGER_IDS = {
   /** Short form trigger ID */
-  SHORT: 'mcp_command_received',
+  SHORT: 'ai_tool_call',
   /** Full URI form trigger ID */
-  FULL: 'homey:app:nl.vmcc.homeymcpserver:mcp_command_received',
+  FULL: 'homey:app:nl.joonix.aichatcontrol:ai_tool_call',
   /** Suffix used to match trigger IDs */
-  SUFFIX: ':mcp_command_received',
+  SUFFIX: ':ai_tool_call',
 } as const;
 
 /**

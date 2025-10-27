@@ -39,7 +39,7 @@ AI Chat Control connects your Homey to AI assistants like Claude Desktop. Simply
 ## Documentation
 
 **For complete setup instructions, examples, and troubleshooting, see:**
-📖 [https://jeroen-meijer.github.io/com.jeroenmeijer.aichatcontrol/](https://jeroen-meijer.github.io/com.jeroenmeijer.aichatcontrol/)
+📖 [https://jvmenen.github.io/homey-ai-chat-control/](https://jvmenen.github.io/homey-ai-chat-control/)
 
 The documentation includes:
 - Step-by-step installation guide
@@ -65,7 +65,7 @@ The documentation includes:
 
 ## Support
 
-Having issues? Check the [documentation](https://jeroen-meijer.github.io/com.jeroenmeijer.aichatcontrol/) for troubleshooting tips.
+Having issues? Check the [documentation](https://jvmenen.github.io/homey-ai-chat-control/) for troubleshooting tips.
 
 ## Development
 

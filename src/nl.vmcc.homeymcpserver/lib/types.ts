@@ -28,7 +28,7 @@ export interface HomeyFlow {
 export interface FlowTrigger {
   /** Trigger card ID (e.g., 'mcp_command_received') */
   id: string;
-  /** Full URI (e.g., 'homey:app:nl.vmcc.homeymcpserver:mcp_command_received') */
+  /** Full URI (e.g., 'homey:app:nl.joonix.aichatcontrol:ai_tool_call') */
   uri?: string;
   /** Trigger arguments configured by user in the flow */
   args?: Record<string, any>;
