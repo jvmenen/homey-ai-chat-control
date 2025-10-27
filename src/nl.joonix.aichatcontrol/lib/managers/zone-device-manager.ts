@@ -13,6 +13,14 @@ import {
   ZoneTemperatureResult,
 } from '../types';
 import { CapabilityValueConverter } from '../utils/capability-value-converter';
+import {
+  DeviceNotFoundError,
+  ZoneNotFoundError,
+  CapabilityNotFoundError,
+  CapabilityNotWritableError,
+  CapabilityValueError,
+  HomeyMCPError,
+} from '../utils/errors';
 
 // Type for Homey API device/zone objects (simplified interface)
 interface HomeyAPIDevice {
@@ -69,7 +77,7 @@ export class ZoneDeviceManager {
     }
 
     if (this.isDestroying) {
-      throw new Error('Cannot initialize: manager is being destroyed');
+      throw new HomeyMCPError('Cannot initialize: manager is being destroyed', 'MANAGER_DESTROYING');
     }
 
     try {
@@ -361,23 +369,23 @@ export class ZoneDeviceManager {
       const device = await this.homeyApi.devices.getDevice({ id: deviceId });
 
       if (!device) {
-        throw new Error(`Device ${deviceId} not found`);
+        throw new DeviceNotFoundError(deviceId);
       }
 
       // Check if capability exists
       if (!device.capabilities.includes(capability)) {
-        throw new Error(`Device ${device.name} does not have capability ${capability}`);
+        throw new CapabilityNotFoundError(device.name, capability);
       }
 
       // Get the capability value
       const capabilityObj = device.capabilitiesObj[capability];
 
       if (!capabilityObj) {
-        throw new Error(`Capability ${capability} not found in device ${device.name}`);
+        throw new CapabilityNotFoundError(device.name, capability);
       }
 
       if (!capabilityObj.getable) {
-        throw new Error(`Capability ${capability} is not readable`);
+        throw new CapabilityValueError(`Capability ${capability} is not readable`);
       }
 
       return capabilityObj.value;
@@ -397,7 +405,7 @@ export class ZoneDeviceManager {
       const zone = await this.getZone(zoneId);
 
       if (!zone) {
-        throw new Error(`Zone ${zoneId} not found`);
+        throw new ZoneNotFoundError(zoneId);
       }
 
       // Get all devices in the zone with temperature capability
@@ -475,24 +483,24 @@ export class ZoneDeviceManager {
       const device = await this.homeyApi.devices.getDevice({ id: deviceId });
 
       if (!device) {
-        throw new Error(`Device ${deviceId} not found`);
+        throw new DeviceNotFoundError(deviceId);
       }
 
       // Check if capability exists
       if (!device.capabilities.includes(capability)) {
-        throw new Error(`Device ${device.name} does not have capability ${capability}`);
+        throw new CapabilityNotFoundError(device.name, capability);
       }
 
       // Get the capability object
       const capabilityObj = device.capabilitiesObj[capability];
 
       if (!capabilityObj) {
-        throw new Error(`Capability ${capability} not found in device ${device.name}`);
+        throw new CapabilityNotFoundError(device.name, capability);
       }
 
       // Check if capability is setable
       if (!capabilityObj.setable) {
-        throw new Error(`Capability ${capability} is not writable (read-only)`);
+        throw new CapabilityNotWritableError(capability);
       }
 
       // Convert and validate value type
@@ -520,14 +528,14 @@ export class ZoneDeviceManager {
       const device = await this.homeyApi.devices.getDevice({ id: deviceId });
 
       if (!device) {
-        throw new Error(`Device ${deviceId} not found`);
+        throw new DeviceNotFoundError(deviceId);
       }
 
       // Get current value
       const currentValue = await this.getCapabilityValue(deviceId, capability);
 
       if (typeof currentValue !== 'boolean') {
-        throw new Error(`Capability ${capability} is not a boolean (current value: ${currentValue})`);
+        throw new CapabilityValueError(`Capability ${capability} is not a boolean (current value: ${currentValue})`);
       }
 
       // Toggle
@@ -556,7 +564,7 @@ export class ZoneDeviceManager {
       const zone = await this.getZone(zoneId);
 
       if (!zone) {
-        throw new Error(`Zone ${zoneId} not found`);
+        throw new ZoneNotFoundError(zoneId);
       }
 
       // Get all devices in zone with onoff capability
@@ -566,7 +574,7 @@ export class ZoneDeviceManager {
       );
 
       if (lights.length === 0) {
-        throw new Error(`No lights found in zone ${zone.name}`);
+        throw new HomeyMCPError(`No lights found in zone ${zone.name}`, 'NO_LIGHTS_IN_ZONE');
       }
 
       this.homey.log(`🔦 Setting ${lights.length} lights in ${zone.name} to ${action}`);
@@ -622,7 +630,7 @@ export class ZoneDeviceManager {
       const zone = await this.getZone(zoneId);
 
       if (!zone) {
-        throw new Error(`Zone ${zoneId} not found`);
+        throw new ZoneNotFoundError(zoneId);
       }
 
       // Get all devices in zone with the capability
@@ -632,7 +640,7 @@ export class ZoneDeviceManager {
       );
 
       if (devicesWithCapability.length === 0) {
-        throw new Error(`No devices with capability ${capability} found in zone ${zone.name}`);
+        throw new CapabilityNotFoundError(zone.name, capability);
       }
 
       this.homey.log(

@@ -6,6 +6,7 @@ import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { ZoneDeviceManager } from '../managers/zone-device-manager';
+import { DeviceNotFoundError, CapabilityNotFoundError } from '../utils/errors';
 
 export class SetThermostatTool extends BaseTool {
   readonly name = 'set_thermostat';
@@ -60,11 +61,11 @@ NOTE: This only sets the TARGET temperature, not current temperature (which is r
       const device = await this.zoneDeviceManager.getDevice(deviceId);
 
       if (!device) {
-        throw new Error(`Device not found`);
+        throw new DeviceNotFoundError(deviceId);
       }
 
       if (!device.capabilities.includes('target_temperature')) {
-        throw new Error(`Device ${device.name} does not have temperature control capability`);
+        throw new CapabilityNotFoundError(device.name, 'target_temperature');
       }
 
       await this.zoneDeviceManager.setCapabilityValue(deviceId, 'target_temperature', temperature);

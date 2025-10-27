@@ -6,6 +6,7 @@ import Homey from 'homey';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult } from '../types';
 import { ZoneDeviceManager } from '../managers/zone-device-manager';
+import { DeviceNotFoundError, CapabilityValueError } from '../utils/errors';
 
 export class SetLightTool extends BaseTool {
   readonly name = 'set_light';
@@ -78,11 +79,11 @@ EXAMPLES:
       const device = await this.zoneDeviceManager.getDevice(deviceId);
 
       if (!device) {
-        throw new Error(`Device not found`);
+        throw new DeviceNotFoundError(deviceId);
       }
 
       if (device.class !== 'light') {
-        throw new Error(`Device ${device.name} is not a light (class: ${device.class})`);
+        throw new CapabilityValueError(`Device ${device.name} is not a light (class: ${device.class})`);
       }
 
       // Handle toggle

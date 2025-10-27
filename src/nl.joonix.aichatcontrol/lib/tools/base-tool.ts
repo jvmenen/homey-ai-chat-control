@@ -3,6 +3,7 @@
  */
 
 import { MCPTool, MCPToolCallResult } from '../types';
+import { InvalidParameterError } from '../utils/errors';
 
 /**
  * Interface that all MCP tool handlers must implement
@@ -78,7 +79,7 @@ export abstract class BaseTool implements MCPToolHandler {
     );
 
     if (missing.length > 0) {
-      throw new Error(`Missing required arguments: ${missing.join(', ')}`);
+      throw new InvalidParameterError(missing.join(', '), 'required but not provided');
     }
   }
 }

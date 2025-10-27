@@ -4,7 +4,7 @@
 
 import { MCPTool, MCPToolCallResult } from '../types';
 import { MCPToolHandler } from './base-tool';
-import { ToolNotFoundError } from '../utils/errors';
+import { ToolNotFoundError, HomeyMCPError } from '../utils/errors';
 
 /**
  * Registry for managing MCP tool handlers
@@ -20,7 +20,7 @@ export class ToolRegistry {
    */
   register(tool: MCPToolHandler): void {
     if (this.tools.has(tool.name)) {
-      throw new Error(`Tool '${tool.name}' is already registered`);
+      throw new HomeyMCPError(`Tool '${tool.name}' is already registered`, 'TOOL_ALREADY_REGISTERED');
     }
     this.tools.set(tool.name, tool);
   }
