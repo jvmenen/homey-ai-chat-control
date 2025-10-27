@@ -80,7 +80,7 @@ export class FlowManager {
   /**
    * Discover flows that use our MCP trigger card
    */
-  async discoverMCPFlows(): Promise<Array<{ flowId: string; flowName: string; command: string; description?: string }>> {
+  async discoverMCPFlows(): Promise<Array<{ flowId: string; flowName: string; command: string; description?: string; parameters?: string }>> {
     await this.init();
 
     try {
@@ -334,8 +334,8 @@ export class FlowManager {
     const mcpFlows = await this.discoverMCPFlows();
 
     return mcpFlows.map((flow) => {
-      // Parse parameters from flow description
-      const { properties, required, parameterNames } = this.parseParameters(flow.description);
+      // Parse parameters from flow parameters field
+      const { properties, required, parameterNames } = this.parseParameters(flow.parameters);
 
       // Cache parameter order for this command (for correct token mapping later)
       if (parameterNames.length > 0) {
@@ -355,9 +355,18 @@ export class FlowManager {
         tokenMapping = ` Token mapping: ${mappings.join(', ')}`;
       }
 
+      // Build tool description
+      let toolDescription = flow.description || `Trigger flow "${flow.flowName}"`;
+      if (paramInfo) {
+        toolDescription += paramInfo;
+      }
+      if (tokenMapping) {
+        toolDescription += `. ${tokenMapping}`;
+      }
+
       return {
         name: flow.command,
-        description: `Trigger flow "${flow.flowName}" (command: ${flow.command})${paramInfo}.${tokenMapping}`,
+        description: toolDescription,
         inputSchema: {
           type: 'object' as const,
           properties,

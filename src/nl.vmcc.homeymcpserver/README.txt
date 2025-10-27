@@ -1,1 +1,3 @@
-An MCP Server to expose Homey Flows and Devices to Large Languages Models (LLMs)
+AI Chat Control brings the power of AI to your smart home by connecting your Homey to advanced AI assistants like Claude. Using natural language, you can ask your AI assistant to control devices, trigger flows, and get information about your home - all without navigating through apps or remembering exact commands. The app uses the Model Context Protocol (MCP) standard, making it compatible with any MCP-enabled AI assistant.
+
+The app works by running a local server on your Homey that communicates with your AI assistant. This means you need to be on the same network as your Homey for the connection to work. The app also provides a special Flow trigger card that lets you create custom commands - when your AI assistant sends a specific command, your Flow can perform any action you want, from playing your favorite radio station to running complex multi-device routines.

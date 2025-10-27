@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Control - Homey App Documentation</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #A9BCB8 0%, #8FA8A3 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .nav {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav a {
+            color: #A9BCB8;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .nav a:hover {
+            background: #f0f0f0;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #A9BCB8;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .card h3 {
+            color: #666;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .card h4 {
+            color: #777;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .step {
+            background: #f8f9fa;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            border-left: 3px solid #A9BCB8;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            margin-top: 3rem;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 AI Chat Control</h1>
+        <p>Control your Homey with AI assistants using natural language</p>
+    </div>
+
+    <div class="container">
+        <nav class="nav">
+            <a href="#intro">Introduction</a>
+            <a href="#setup">Setup Guide</a>
+            <a href="#claude-config">Claude Configuration</a>
+            <a href="#flow-cards">Flow Trigger Cards</a>
+            <a href="#examples">Examples</a>
+            <a href="#troubleshooting">Troubleshooting</a>
+        </nav>
+
+        <div class="card" id="intro">
+            <h2>👋 Introduction</h2>
+
+            <p>AI Chat Control brings the power of AI to your smart home by connecting your Homey to advanced AI assistants like Claude. Using natural language, you can ask your AI assistant to control devices, trigger flows, and get information about your home - all without navigating through apps or remembering exact commands. The app uses the Model Context Protocol (MCP) standard, making it compatible with any MCP-enabled AI assistant.</p>
+
+            <p>The app works by running a local server on your Homey that communicates with your AI assistant. This means you need to be on the same network as your Homey for the connection to work. The app also provides a special Flow trigger card that lets you create custom commands - when your AI assistant sends a specific command, your Flow can perform any action you want, from playing your favorite radio station to running complex multi-device routines.</p>
+
+            <h3>Try It Out</h3>
+            <p>Once you've completed the setup, start with these example questions to see what AI Chat Control can do:</p>
+            <ul>
+                <li><strong>"What devices do I have in my home?"</strong> - Get a complete overview of all your Homey devices</li>
+                <li><strong>"Start radio station BBC1 on the kitchen radio"</strong> - A custom command example we'll create together in this guide</li>
+            </ul>
+        </div>
+
+        <div class="card" id="setup">
+            <h2>📦 Installation & Setup</h2>
+
+            <h3>Step 1: Install the App</h3>
+            <ol>
+                <li>Open the Homey app on your phone</li>
+                <li>Go to <strong>More</strong> → <strong>Apps</strong></li>
+                <li>Tap the <strong>+</strong> (plus) icon to add a new app</li>
+                <li>Search for <strong>"AI Chat Control"</strong></li>
+                <li>Tap <strong>Install</strong></li>
+            </ol>
+
+            <h3>Step 2: Find Your Homey's IP Address</h3>
+            <div class="step">
+                <p><strong>Method 1: Via Homey App</strong></p>
+                <ol>
+                    <li>Open the Homey app</li>
+                    <li>Go to <strong>More</strong> → <strong>Settings</strong></li>
+                    <li>Under System Info, tap <strong>General</strong></li>
+                    <li>Tap <strong>About</strong></li>
+                    <li>Under Connectivity, look for the <strong>Wi-Fi address</strong> value</li>
+                </ol>
+            </div>
+
+            <div class="step">
+                <p><strong>Method 2: Via Router</strong></p>
+                <ol>
+                    <li>Log in to your router's admin panel</li>
+                    <li>Look for connected devices</li>
+                    <li>Find "Homey" in the device list</li>
+                </ol>
+            </div>
+
+            <div class="warning">
+                <strong>⚠️ Important:</strong> Your computer and Homey must be on the same local network for this app to work.
+            </div>
+        </div>
+
+        <div class="card" id="claude-config">
+            <h2>🔧 Configure Claude Desktop</h2>
+
+            <h3>What is MCP?</h3>
+            <p>Model Context Protocol (MCP) is a standard that allows AI assistants like Claude to communicate with external tools and services. AI Chat Control uses MCP to let Claude control your Homey.</p>
+
+            <h3>Step-by-Step Configuration</h3>
+
+            <div class="step">
+                <h4>1. Locate the Claude Desktop Config File</h4>
+                <p><strong>Windows:</strong></p>
+                <pre><code>%APPDATA%\Claude\claude_desktop_config.json</code></pre>
+
+                <p><strong>macOS:</strong></p>
+                <pre><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></pre>
+
+                <p><strong>Linux:</strong></p>
+                <pre><code>~/.config/Claude/claude_desktop_config.json</code></pre>
+            </div>
+
+            <div class="step">
+                <h4>2. Edit the Configuration File</h4>
+                <p>Open the file in a text editor and add the following configuration:</p>
+                <pre><code>{
+  "mcpServers": {
+    "homey": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://[YOUR-HOMEY-IP]:3000/mcp",
+        "--allow-http"
+      ]
+    }
+  }
+}</code></pre>
+
+                <p>Replace <code>[YOUR-HOMEY-IP]</code> with your Homey's actual IP address (e.g., <code>192.168.1.50</code>)</p>
+            </div>
+
+            <div class="step">
+                <h4>3. Full Example Configuration</h4>
+                <p>If you already have other MCP servers configured, your file might look like this:</p>
+                <pre><code>{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/username/Documents"]
+    },
+    "homey": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://192.168.1.50:3000/mcp",
+        "--allow-http"
+      ]
+    }
+  }
+}</code></pre>
+            </div>
+
+            <div class="step">
+                <h4>4. Restart Claude Desktop</h4>
+                <ol>
+                    <li>Save the configuration file</li>
+                    <li>Completely quit Claude Desktop</li>
+                    <li><strong>Important:</strong> Just closing the window is not enough - Claude continues running in the background. Use Task Manager (Windows) or Activity Monitor (macOS) to ensure Claude Desktop is fully closed.</li>
+                    <li>Start Claude Desktop again</li>
+                </ol>
+            </div>
+
+            <div class="success">
+                <strong>✅ Success!</strong> If configured correctly, Claude will now be able to control your Homey. Try asking: "What devices do I have in Homey?"
+            </div>
+
+            <div class="info">
+                <strong>💡 Tip:</strong> You can verify the connection by checking if Claude mentions "Homey" tools when you start a conversation about your smart home.
+            </div>
+        </div>
+
+        <div class="card" id="flow-cards">
+            <h2>🎯 Flow Trigger Cards</h2>
+
+            <h3>What are Flow Trigger Cards?</h3>
+            <p>Flow trigger cards are "When..." cards you can add to your Flows. The AI Chat Control app provides an "AI Tool call" card that lets Claude start your Flows with custom commands.</p>
+
+            <h3>The "AI Tool call" Card</h3>
+            <p>This card has two purposes: it teaches Claude what your Flow does and what information is needed, and it triggers the Flow to run when Claude sends the command with the required parameters. Only Flows with this card are made available to Claude as tools.</p>
+
+            <h4>Configuration Fields</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Command</strong></td>
+                        <td>The command name that will trigger this Flow</td>
+                        <td><code>play_radio</code>, <code>bedtime_routine</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Description</strong></td>
+                        <td>Explain to the AI what this command does</td>
+                        <td><code>Play a radio station on the kitchen radio</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Parameters</strong></td>
+                        <td>Optional parameters that Claude can provide (one per line)</td>
+                        <td><code>streamUrl: string<br>streamName: string</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Available Tokens</h4>
+            <p>When the trigger fires, these tokens become available in your Flow:</p>
+            <ul>
+                <li><code>{{Command}}</code> - The command name</li>
+                <li><code>{{Parameter 1}}</code> - First parameter value</li>
+                <li><code>{{Parameter 2}}</code> - Second parameter value</li>
+                <li><code>{{Parameter 3}}</code> - Third parameter value</li>
+                <li><code>{{Parameter 4}}</code> - Fourth parameter value</li>
+                <li><code>{{Parameter 5}}</code> - Fifth parameter value</li>
+            </ul>
+
+            <h3>Example: Play Radio Station</h3>
+
+            <div class="step">
+                <h4>Step 1: Create the Flow</h4>
+                <ol>
+                    <li>Open Homey and create a new Flow</li>
+                    <li>Add the <strong>"AI Tool call"</strong> card as your trigger</li>
+                    <li>Configure the card:
+                        <ul>
+                            <li><strong>Command:</strong> <code>play_radio</code></li>
+                            <li><strong>Description:</strong> <code>Play a radio station on the kitchen radio</code></li>
+                            <li><strong>Parameters:</strong> (each parameter on its own line)
+                                <pre><code>streamUrl: string - Radio stream URL
+streamName: string - Name of the radio station</code></pre>
+                            </li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="step">
+                <h4>Step 2: Add Flow Actions</h4>
+                <ol>
+                    <li>Add your "Cast Audio URL" action (or similar for your radio device)</li>
+                    <li>For the stream URL field, use the token <code>{{Parameter 1}}</code> (this is the streamUrl parameter)</li>
+                    <li>For the stream name field, use the token <code>{{Parameter 2}}</code> (this is the streamName parameter)</li>
+                    <li>Add any other actions you want</li>
+                </ol>
+            </div>
+
+            <div class="step">
+                <h4>Step 3: Refresh Claude's Flow List</h4>
+                <p>After creating or modifying a Flow, ask Claude to refresh:</p>
+                <pre><code>"Refresh the Homey flows"</code></pre>
+                <p>Claude will use the <code>refresh_homey_flows</code> tool to discover your new Flow. Alternatively, you can restart Claude Desktop.</p>
+            </div>
+
+            <div class="step">
+                <h4>Step 4: Test with Claude</h4>
+                <p>Ask Claude:</p>
+                <pre><code>"Start radio station BBC1 on the kitchen radio"</code></pre>
+                <p>Claude will parse this request and call the <code>play_radio</code> command with the appropriate URL and station name.</p>
+            </div>
+
+            <h3>Parameter Format Guidelines</h3>
+
+            <div class="info">
+                <p><strong>Format:</strong> <code>parameter_name: type - Description</code></p>
+
+                <p><strong>IMPORTANT:</strong> Each parameter must be on its own line. Don't put multiple parameters on the same line.</p>
+
+                <p><strong>Types you can use:</strong></p>
+                <ul>
+                    <li><code>string</code> - Any text</li>
+                    <li><code>number</code> - Numbers (e.g., 42, 3.14)</li>
+                    <li><code>boolean</code> - true or false</li>
+                </ul>
+
+                <p><strong>Optional parameters:</strong> Add <code>?</code> after the validation</p>
+                <pre><code>volume: number(0-100)? - Optional volume level</code></pre>
+
+                <p><strong>Ranges (for numbers):</strong> Specify min-max in parentheses</p>
+                <pre><code>temperature: number(16-30) - Temperature in degrees Celsius
+brightness: number(0-100) - Brightness percentage</code></pre>
+
+                <p><strong>Enums (for strings):</strong> Specify allowed values separated by | in parentheses</p>
+                <pre><code>mode: string(on|off|auto) - Operating mode
+color: string(red|green|blue) - Light color</code></pre>
+            </div>
+
+            <h3>Tips for Creating Commands</h3>
+            <ul>
+                <li>Use clear, descriptive command names (e.g., <code>bedtime_routine</code> instead of <code>br</code>)</li>
+                <li>Keep parameter lists short (max 5 parameters)</li>
+                <li>Provide good descriptions so Claude knows what to send</li>
+                <li>Test commands with different phrasings to Claude</li>
+                <li>Use snake_case for command names (e.g., <code>turn_on_lights</code>)</li>
+            </ul>
+        </div>
+
+        <div class="card" id="examples">
+            <h2>💡 Usage Examples</h2>
+
+            <h3>Basic Device Control</h3>
+            <p>These commands work out of the box without creating any Flows. Just ask Claude and it will control your devices directly.</p>
+            <ul>
+                <li>"Is the attic light on?"</li>
+                <li>"Set the thermostat to 18 degrees"</li>
+                <li>"What's the temperature in the bedroom?"</li>
+                <li>"Turn on the lights in the living room" (zone action)</li>
+                <li>"Turn off all devices in the kitchen" (zone action)</li>
+            </ul>
+
+            <h3>AI Chat Control Flows</h3>
+            <p>To start a Flow using Claude, the Flow must contain an "AI Tool call" card. You cannot start existing Flows that don't have this card.</p>
+            <ul>
+                <li>"Start my morning routine"</li>
+                <li>"Set the house to vacation mode"</li>
+                <li>"Water the plants for 10 minutes"</li>
+                <li>"Start radio station BBC1 on the kitchen radio"</li>
+            </ul>
+
+            <h3>AI-Powered Queries</h3>
+            <p>These questions leverage Claude's intelligence to analyze and interpret your Homey data in smart ways.</p>
+            <ul>
+                <li>"Which windows are open right now?" (derived information)</li>
+                <li>"What brands of devices do I have?" (meta analysis)</li>
+                <li>"Which devices are offline?" (status analysis)</li>
+                <li>"What's the average temperature in my home?" (calculations)</li>
+                <li>"Which devices use the most energy?" (comparisons)</li>
+            </ul>
+        </div>
+
+        <div class="card" id="troubleshooting">
+            <h2>🔧 Troubleshooting</h2>
+
+            <h3>Claude Can't Connect to Homey</h3>
+
+            <div class="step">
+                <h4>Check Network Connection</h4>
+                <ol>
+                    <li>Verify your computer and Homey are on the same network</li>
+                    <li>Try pinging your Homey: <code>ping [homey-ip]</code></li>
+                    <li>Make sure your firewall isn't blocking port 3000</li>
+                </ol>
+            </div>
+
+            <div class="step">
+                <h4>Verify Configuration</h4>
+                <ol>
+                    <li>Double-check the IP address in your Claude config</li>
+                    <li>Ensure the format is exactly: <code>http://[YOUR-HOMEY-IP]:3000/mcp</code></li>
+                    <li>Make sure there are no typos in the JSON</li>
+                    <li>Restart Claude Desktop after any config changes</li>
+                </ol>
+            </div>
+
+            <div class="step">
+                <h4>Test the Connection</h4>
+                <p>Open a browser and go to:</p>
+                <pre><code>http://[YOUR-HOMEY-IP]:3000/health</code></pre>
+                <p>You should see a JSON response with status information. If you get an error or timeout, the app may not be running.</p>
+            </div>
+
+            <h3>Flow Triggers Not Working</h3>
+
+            <ul>
+                <li>Check that the command name in your Flow exactly matches what you tell Claude</li>
+                <li>Make sure the Flow is enabled</li>
+                <li>Ask Claude to refresh the flows: "Refresh the Homey flows"</li>
+            </ul>
+
+            <h3>Commands Not Recognized</h3>
+
+            <ul>
+                <li>Be specific: "Turn on the living room lights" instead of "lights on"</li>
+                <li>Use the exact device names as they appear in Homey</li>
+                <li>Claude understands natural language - just ask normally</li>
+            </ul>
+
+            <h3>Performance Issues</h3>
+
+            <ul>
+                <li>Restart the AI Chat Control app in Homey</li>
+                <li>Restart Claude Desktop</li>
+                <li>Check your Homey's performance in the Homey app</li>
+            </ul>
+
+            <h3>Still Having Issues?</h3>
+
+            <div class="info">
+                <p>Visit the <a href="https://community.homey.app" target="_blank">Homey Community Forum</a> for help.</p>
+                <p>When asking for help, include:</p>
+                <ul>
+                    <li>Your Homey firmware version</li>
+                    <li>The AI Chat Control app version</li>
+                    <li>What you tried and what error you got</li>
+                    <li>Your Claude Desktop version</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Made with ❤️ for the Homey community</p>
+            <p><a href="https://github.com/jvanmenen/homeymcp" target="_blank">View on GitHub</a></p>
+        </div>
+    </div>
+</body>
+</html>

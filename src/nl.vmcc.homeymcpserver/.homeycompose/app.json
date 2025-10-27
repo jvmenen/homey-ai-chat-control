@@ -7,14 +7,17 @@
     "local"
   ],
   "name": {
-    "en": "HomeyMCPServer"
+    "en": "AI Chat Control",
+    "nl": "AI Chat Controle"
   },
   "description": {
-    "en": "An MCP Server to expose Homey Flows and Devices to Large Languages Models (LLMs)"
+    "en": "Control your Homey with AI assistants like Claude using natural language",
+    "nl": "Bedien je Homey met AI assistenten zoals Claude via natuurlijke taal"
   },
   "category": [
     "tools"
   ],
+  "brandColor": "#A9BCB8",
   "permissions": [
     "homey:manager:api"
   ],

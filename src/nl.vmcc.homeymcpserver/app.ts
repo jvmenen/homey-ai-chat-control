@@ -168,6 +168,17 @@ module.exports = class HomeyMCPApp extends Homey.App {
   async onUninit() {
     this.log('HomeyMCP Server shutting down...');
 
+    // Clean up Zone & Device Manager first to close Homey API connection
+    if (this.zoneDeviceManager) {
+      try {
+        await this.zoneDeviceManager.destroy();
+        this.log('Zone & Device Manager cleaned up');
+      } catch (error) {
+        this.error('Error cleaning up Zone & Device Manager:', error);
+      }
+    }
+
+    // Close HTTP server
     if (this.httpServer) {
       this.httpServer.close();
       this.log('HTTP server stopped');

@@ -16,6 +16,7 @@ export class ZoneDeviceManager {
   private homey: any;
   private homeyApi: any;
   private initialized: boolean = false;
+  private isDestroying: boolean = false;
 
   constructor(homey: any) {
     this.homey = homey;
@@ -29,6 +30,10 @@ export class ZoneDeviceManager {
       return;
     }
 
+    if (this.isDestroying) {
+      throw new Error('Cannot initialize: manager is being destroyed');
+    }
+
     try {
       const { HomeyAPI } = require('homey-api');
       this.homeyApi = await HomeyAPI.createAppAPI({ homey: this.homey });
@@ -37,6 +42,43 @@ export class ZoneDeviceManager {
     } catch (error) {
       this.homey.error('ZoneDeviceManager: Failed to initialize Homey API:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Clean up resources and close API connection
+   */
+  async destroy(): Promise<void> {
+    if (!this.initialized || this.isDestroying) {
+      return;
+    }
+
+    this.isDestroying = true;
+    this.homey.log('ZoneDeviceManager: Cleaning up resources...');
+
+    try {
+      // Close Homey API connection if it exists and has a destroy method
+      if (this.homeyApi) {
+        // Remove all event listeners first to prevent recursive calls
+        if (typeof this.homeyApi.removeAllListeners === 'function') {
+          this.homeyApi.removeAllListeners();
+        }
+
+        // Destroy the API connection
+        if (typeof this.homeyApi.destroy === 'function') {
+          await this.homeyApi.destroy();
+        }
+
+        this.homeyApi = null;
+      }
+
+      this.initialized = false;
+      this.homey.log('ZoneDeviceManager: Cleanup completed');
+    } catch (error) {
+      // Silently catch errors during cleanup to prevent recursive issues
+      this.homey.error('ZoneDeviceManager: Error during cleanup:', error);
+    } finally {
+      this.isDestroying = false;
     }
   }
 

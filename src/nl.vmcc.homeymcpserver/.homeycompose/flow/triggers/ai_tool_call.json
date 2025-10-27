@@ -1,15 +1,15 @@
 {
   "title": {
-    "en": "MCP command received",
-    "nl": "MCP commando ontvangen"
+    "en": "AI Tool call",
+    "nl": "AI Tool aanroep"
   },
   "titleFormatted": {
-    "en": "MCP command [[command]] received with parameters [[parameters]]",
-    "nl": "MCP commando [[command]] ontvangen met parameters [[parameters]]"
+    "en": "AI Tool call [[command]]: [[description]] with parameters [[parameters]]",
+    "nl": "AI Tool aanroep [[command]]: [[description]] met parameters [[parameters]]"
   },
   "hint": {
-    "en": "This Flow will be triggered when Claude AI sends a command via MCP.",
-    "nl": "Deze Flow wordt getriggerd wanneer Claude AI een commando stuurt via MCP."
+    "en": "This Flow will be triggered when your AI assistant calls this tool.",
+    "nl": "Deze Flow wordt getriggerd wanneer je AI assistent deze tool aanroept."
   },
   "args": [
     {
@@ -22,6 +22,22 @@
       "placeholder": {
         "en": "e.g., play_radio, toggle_lights",
         "nl": "bijv. speel_radio, schakel_lampen"
+      }
+    },
+    {
+      "type": "text",
+      "name": "description",
+      "title": {
+        "en": "Description",
+        "nl": "Beschrijving"
+      },
+      "placeholder": {
+        "en": "Explain what this tool does for the AI",
+        "nl": "Leg uit wat deze tool doet voor de AI"
+      },
+      "hint": {
+        "en": "Help the AI understand when to use this tool. Be specific about what it does.",
+        "nl": "Help de AI begrijpen wanneer deze tool te gebruiken. Wees specifiek over wat het doet."
       }
     },
     {

@@ -11,7 +11,8 @@ export interface MCPFlowInfo {
   flowId: string;
   flowName: string;
   command: string;
-  description?: string;
+  description?: string; // User-provided description for AI
+  parameters?: string; // Parameter definitions
   cardId?: string; // Optional: ID of the specific trigger card (for advanced flows with multiple triggers)
 }
 
@@ -121,7 +122,8 @@ export class FlowParser {
       flowId: flow.id,
       flowName: flow.name,
       command,
-      description: args?.parameters || undefined,
+      description: args?.description || undefined,
+      parameters: args?.parameters || undefined,
       cardId,
     };
   }
