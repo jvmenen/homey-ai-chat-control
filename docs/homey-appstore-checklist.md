@@ -13,7 +13,7 @@ Deze checklist bevat alle vereisten om de HomeyMCPServer app succesvol te public
 ## 1. App Manifest (app.json / .homeycompose/app.json)
 
 ### 1.1 Verplichte Basisvelden
-- ✅ **id**: `nl.vmcc.homeymcpserver`
+- ✅ **id**: `nl.joonix.aichatcontrol`
 - ✅ **version**: `1.0.0`
 - ✅ **compatibility**: `>=12.4.0`
 - ✅ **sdk**: `3`
@@ -218,7 +218,7 @@ homey app validate --level publish
 ### 10.2 Publicatie Stappen
 1. **Build de app**:
    ```bash
-   cd src/nl.vmcc.homeymcpserver
+   cd src/nl.joonix.aichatcontrol
    homey app build
    ```
 

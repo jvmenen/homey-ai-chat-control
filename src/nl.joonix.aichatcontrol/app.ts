@@ -36,7 +36,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
 
       // Register flow trigger card
       this.log('Registering flow trigger card...');
-      const mcpCommandTrigger = this.homey.flow.getTriggerCard('mcp_command_received');
+      const mcpCommandTrigger = this.homey.flow.getTriggerCard('ai_tool_call');
       this.log('Flow trigger card registered');
 
       // Initialize Flow Manager with trigger card FIRST

@@ -72,7 +72,7 @@ Having issues? Check the [documentation](https://jvmenen.github.io/homey-ai-chat
 ### Building from Source
 
 ```bash
-cd src/nl.vmcc.homeymcpserver
+cd src/nl.joonix.aichatcontrol
 npm install
 homey app build
 homey app install
@@ -86,15 +86,15 @@ npm test
 
 ## Changelog
 
-See [.homeychangelog.json](src/nl.vmcc.homeymcpserver/.homeychangelog.json) for version history.
+See [.homeychangelog.json](src/nl.joonix.aichatcontrol/.homeychangelog.json) for version history.
 
 ## License
 
-GPL-3.0 - See [LICENSE](src/nl.vmcc.homeymcpserver/LICENSE) for details.
+GPL-3.0 - See [LICENSE](src/nl.joonix.aichatcontrol/LICENSE) for details.
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](src/nl.vmcc.homeymcpserver/CONTRIBUTING.md) before submitting pull requests.
+Contributions are welcome! Please read [CONTRIBUTING.md](src/nl.joonix.aichatcontrol/CONTRIBUTING.md) before submitting pull requests.
 
 ## Author
 

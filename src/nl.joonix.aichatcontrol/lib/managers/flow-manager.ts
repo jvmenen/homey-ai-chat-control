@@ -478,7 +478,7 @@ export class FlowManager {
         command: toolName,
       };
 
-      this.homey.log(`Triggering flow card "mcp_command_received" with command="${toolName}"`);
+      this.homey.log(`Triggering flow card "ai_tool_call" with command="${toolName}"`);
       this.homey.log(`Tokens: ${JSON.stringify(tokens)}`);
       this.homey.log('Any flows listening for this command will now execute...');
 
