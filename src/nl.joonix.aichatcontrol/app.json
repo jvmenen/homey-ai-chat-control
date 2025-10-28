@@ -58,7 +58,8 @@
     ]
   },
   "homepage": "https://jvmenen.github.io/homey-ai-chat-control/",
-  "support": "https://github.com/jvmenen/homey-ai-chat-control/issues",
+  "homeyCommunityTopicId": 144644,
+  "support": "https://community.homey.app/t/144644",
   "source": "https://github.com/jvmenen/homey-ai-chat-control",
   "bugs": {
     "url": "https://github.com/jvmenen/homey-ai-chat-control/issues"
