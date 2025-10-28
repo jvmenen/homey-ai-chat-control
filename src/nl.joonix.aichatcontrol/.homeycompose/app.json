@@ -1,6 +1,6 @@
 {
   "id": "nl.joonix.aichatcontrol",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "compatibility": ">=12.4.0",
   "sdk": 3,
   "platforms": [
@@ -39,8 +39,22 @@
     ]
   },
   "tags": {
-    "en": ["AI", "MCP", "Model Context Protocol", "Claude", "automation", "natural language"],
-    "nl": ["AI", "MCP", "Model Context Protocol", "Claude", "automatisering", "natuurlijke taal"]
+    "en": [
+      "AI",
+      "MCP",
+      "Model Context Protocol",
+      "Claude",
+      "automation",
+      "natural language"
+    ],
+    "nl": [
+      "AI",
+      "MCP",
+      "Model Context Protocol",
+      "Claude",
+      "automatisering",
+      "natuurlijke taal"
+    ]
   },
   "homepage": "https://jvmenen.github.io/homey-ai-chat-control/",
   "support": "https://github.com/jvmenen/homey-ai-chat-control/issues",
