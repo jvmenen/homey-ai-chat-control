@@ -3,6 +3,7 @@
  */
 
 import { FlowOverviewData } from '../interfaces';
+import type { InsightLog, InsightLogWithData } from '../managers/insights-manager.js';
 
 /**
  * Device states data (from ZoneDeviceManager.getStates())
@@ -377,6 +378,146 @@ export class XMLFormatter {
 - <token-input> shows when a card CONSUMES a dynamic variable from another device
 - <token> elements show when a trigger PRODUCES dynamic variables for use in other cards
 - Use get_home_structure to look up device names from device IDs
+`;
+  }
+
+  /**
+   * Format insight logs overview as XML
+   * @param logs - Insight logs from InsightsManager
+   * @returns Formatted XML string with instructions
+   */
+  static formatInsightLogs(logs: InsightLog[]): string {
+    const numberLogs = logs.filter((l) => l.type === 'number').length;
+    const booleanLogs = logs.filter((l) => l.type === 'boolean').length;
+
+    let message = `Here are the available insight logs in XML format for easy parsing:\n\n`;
+    message += `SUMMARY: ${logs.length} insight logs (${numberLogs} numeric, ${booleanLogs} boolean)\n\n`;
+    message += `<insights total="${logs.length}" numeric="${numberLogs}" boolean="${booleanLogs}">\n`;
+
+    if (logs.length === 0) {
+      message += `  <!-- No insight logs found -->\n`;
+    } else {
+      for (const log of logs) {
+        message += `  <log id="${this.escapeXml(log.id)}"`;
+        message += ` title="${this.escapeXml(log.title)}"`;
+        message += ` type="${log.type}"`;
+
+        if (log.units) {
+          message += ` units="${this.escapeXml(log.units)}"`;
+        }
+
+        if (log.type === 'boolean') {
+          if (log.titleTrue) {
+            message += ` title-true="${this.escapeXml(log.titleTrue)}"`;
+          }
+          if (log.titleFalse) {
+            message += ` title-false="${this.escapeXml(log.titleFalse)}"`;
+          }
+        }
+
+        if (log.decimals !== undefined) {
+          message += ` decimals="${log.decimals}"`;
+        }
+
+        message += ` device-id="${this.escapeXml(log.ownerId)}"`;
+        message += ` device-name="${this.escapeXml(log.ownerName)}"`;
+
+        if (log.zoneName) {
+          message += ` zone-name="${this.escapeXml(log.zoneName)}"`;
+        }
+
+        if (log.zoneId) {
+          message += ` zone-id="${this.escapeXml(log.zoneId)}"`;
+        }
+
+        message += ` />\n`;
+      }
+    }
+
+    message += `</insights>\n\n`;
+    message += this.getInsightLogsInstructions();
+
+    return message;
+  }
+
+  /**
+   * Get instructions for insight logs XML
+   */
+  private static getInsightLogsInstructions(): string {
+    return `INSTRUCTIONS:
+- This shows all available insight logs (historical data tracking)
+- Each log tracks a specific metric for a device over time
+- Numeric logs track values like temperature, power consumption, humidity
+- Boolean logs track on/off states, motion detection, etc.
+- Use get_insight_data with the log ID to retrieve actual historical data
+- Filter by device-id or zone-id to find specific insights
+`;
+  }
+
+  /**
+   * Format insight data (historical entries) as XML
+   * @param data - Insight data from InsightsManager
+   * @param resolution - The resolution used for the query
+   * @returns Formatted XML string with instructions
+   */
+  static formatInsightData(data: InsightLogWithData[], resolution?: string): string {
+    const totalEntries = data.reduce((sum, log) => sum + log.entries.length, 0);
+
+    let message = `Historical insight data in XML format for easy parsing:\n\n`;
+    message += `SUMMARY: ${data.length} logs, ${totalEntries} total entries`;
+    if (resolution) {
+      message += `, resolution: ${resolution}`;
+    }
+    message += `\n\n`;
+
+    const resolutionAttr = resolution ? ` resolution="${resolution}"` : '';
+    message += `<insight-data${resolutionAttr}>\n`;
+
+    if (data.length === 0) {
+      message += `  <!-- No insight data found -->\n`;
+    } else {
+      for (const log of data) {
+        message += `  <log id="${this.escapeXml(log.id)}"`;
+        message += ` title="${this.escapeXml(log.title)}"`;
+        message += ` type="${log.type}"`;
+
+        if (log.units) {
+          message += ` units="${this.escapeXml(log.units)}"`;
+        }
+
+        message += ` entries="${log.entries.length}"`;
+
+        if (log.entries.length === 0) {
+          message += ` />\n`;
+        } else {
+          message += `>\n`;
+
+          for (const entry of log.entries) {
+            message += `    <entry timestamp="${this.escapeXml(entry.timestamp)}" value="${entry.value}" />\n`;
+          }
+
+          message += `  </log>\n`;
+        }
+      }
+    }
+
+    message += `</insight-data>\n\n`;
+    message += this.getInsightDataInstructions();
+
+    return message;
+  }
+
+  /**
+   * Get instructions for insight data XML
+   */
+  private static getInsightDataInstructions(): string {
+    return `INSTRUCTIONS:
+- This shows historical time-series data for insight logs
+- Each <entry> has a timestamp (ISO 8601 format) and value
+- Timestamps are sorted chronologically (oldest first)
+- Resolution affects data granularity (lastHour = more detail, last31Days = aggregated)
+- Empty logs indicate no data available for the requested period
+- Use this data to analyze trends, calculate statistics, or answer historical queries
 `;
   }
 }

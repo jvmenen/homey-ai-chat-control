@@ -93,6 +93,16 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   }
 
   /**
+   * Get the Homey API instance
+   */
+  getHomeyApi(): HomeyAPI {
+    if (!this.initialized) {
+      throw new HomeyMCPError('ZoneDeviceManager not initialized', 'NOT_INITIALIZED');
+    }
+    return this.homeyApi;
+  }
+
+  /**
    * Clean up resources and close API connection
    */
   async destroy(): Promise<void> {

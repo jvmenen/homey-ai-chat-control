@@ -5,6 +5,7 @@ import express from 'express';
 import { Server } from 'http';
 import { FlowManager } from './lib/managers/flow-manager';
 import { ZoneDeviceManager } from './lib/managers/zone-device-manager';
+import { InsightsManager } from './lib/managers/insights-manager';
 import { ToolRegistry } from './lib/tools/tool-registry';
 import { MCPServerManager } from './lib/managers/mcp-server-manager';
 import { ToolStateManager } from './lib/managers/tool-state-manager';
@@ -21,12 +22,15 @@ import { ControlZoneLightsTool } from './lib/tools/control-zone-lights-tool';
 import { ControlZoneCapabilityTool } from './lib/tools/control-zone-capability-tool';
 import { GetFlowOverviewTool } from './lib/tools/get-flow-overview-tool';
 import { GetInstalledAppsTool } from './lib/tools/get-installed-apps-tool';
+import { GetInsightLogsTool } from './lib/tools/get-insight-logs-tool';
+import { GetInsightDataTool } from './lib/tools/get-insight-data-tool';
 import { normalizeCommandName } from './lib/parsers/flow-parser';
 
 module.exports = class HomeyMCPApp extends Homey.App {
   private httpServer!: Server;
   private flowManager!: FlowManager;
   private zoneDeviceManager!: ZoneDeviceManager;
+  private insightsManager!: InsightsManager;
   private toolRegistry!: ToolRegistry;
   private mcpServerManager!: MCPServerManager;
   private toolStateManager!: ToolStateManager;
@@ -74,6 +78,14 @@ module.exports = class HomeyMCPApp extends Homey.App {
       await this.zoneDeviceManager.init();
       this.log('Zone & Device Manager initialized');
 
+      // Initialize Insights Manager
+      this.log('Initializing Insights Manager...');
+      this.insightsManager = new InsightsManager(
+        this.zoneDeviceManager.getHomeyApi(),
+        this.zoneDeviceManager
+      );
+      this.log('Insights Manager initialized');
+
       // Initialize Tool State Manager
       this.log('Initializing Tool State Manager...');
       this.toolStateManager = new ToolStateManager();
@@ -96,6 +108,8 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.toolRegistry.register(new SetThermostatTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new ControlZoneLightsTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new ControlZoneCapabilityTool(this.homey, this.zoneDeviceManager));
+      this.toolRegistry.register(new GetInsightLogsTool(this.insightsManager));
+      this.toolRegistry.register(new GetInsightDataTool(this.insightsManager));
 
       this.log(`Tool Registry initialized with ${this.toolRegistry.count()} tools`);
 
