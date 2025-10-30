@@ -7,5 +7,8 @@
   },
   "1.0.2": {
     "en": "Added community support topic"
+  },
+  "2.0.0": {
+    "en": "Historische Data & Flow Analyse Nieuw: ✨ Historische Data Tracking: Vraag je AI assistent om temperatuur geschiedenis, energieverbruik over tijd, of sensor activiteit te analyseren ✨ Flow Overzicht: Krijg compleet inzicht in je automation flows, gefilterd op devices, kamers of apps ✨ App Beheer: Bekijk alle geïnstalleerde apps en hun mogelijkheden ✨ Token Tracking: Betere analyse van dynamische variabelen in flows Verbeterd: 🔧 Flow Triggers: Custom AI flow triggers werken nu betrouwbaarder met verbeterde command matching 🔧 Code Kwaliteit: Verbeterde type safety voor stabielere werking Voorbeelden:"
   }
 }

@@ -7,10 +7,13 @@ Control your Homey smart home using AI assistants like Claude through natural la
 AI Chat Control connects your Homey to AI assistants like Claude Desktop. Simply talk to Claude in natural language to control devices, trigger flows, and get information about your home.
 
 **Examples:**
+
 - "Turn on the living room lights"
 - "Which windows are open?"
 - "Set the thermostat to 21 degrees"
-- "What's the average temperature in my home?"
+- "What was the temperature in the living room yesterday at 2pm?"
+- "Show me the energy consumption of the washing machine this week"
+- "Which flows use my bedroom lamp?"
 
 ## Quick Start
 
@@ -52,8 +55,11 @@ The documentation includes:
 ## Features
 
 - **Direct Device Control** - Control any device without creating Flows
+- **Historical Data Analysis** - Query device history and analyze trends over time
+- **Flow Overview & Filtering** - Discover which flows use specific devices or apps
 - **AI-Powered Queries** - Ask intelligent questions about your home
 - **Custom AI Tools** - Create Flow triggers that appear as tools to Claude
+- **Installed Apps Discovery** - View all apps and their capabilities
 - **Local & Secure** - All communication stays on your local network
 - **MCP Standard** - Compatible with any MCP-enabled AI assistant
 
