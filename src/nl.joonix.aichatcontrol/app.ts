@@ -19,6 +19,8 @@ import { SetLightTool } from './lib/tools/set-light-tool';
 import { SetThermostatTool } from './lib/tools/set-thermostat-tool';
 import { ControlZoneLightsTool } from './lib/tools/control-zone-lights-tool';
 import { ControlZoneCapabilityTool } from './lib/tools/control-zone-capability-tool';
+import { GetFlowOverviewTool } from './lib/tools/get-flow-overview-tool';
+import { normalizeCommandName } from './lib/parsers/flow-parser';
 
 module.exports = class HomeyMCPApp extends Homey.App {
   private httpServer!: Server;
@@ -38,7 +40,26 @@ module.exports = class HomeyMCPApp extends Homey.App {
       // Register flow trigger card
       this.log('Registering flow trigger card...');
       const mcpCommandTrigger = this.homey.flow.getTriggerCard('ai_tool_call');
-      this.log('Flow trigger card registered');
+
+      // Register run listener to match flows based on command argument
+      mcpCommandTrigger.registerRunListener(async (args: any, state: any) => {
+        // args = the arguments configured in the flow (command, description, parameters)
+        // state = passed when triggering (contains command to match)
+        this.log(`Run listener called: flow args=${JSON.stringify(args)}, state=${JSON.stringify(state)}`);
+
+        const flowCommand = args.command || '';
+
+        // Normalize both commands before matching (handles spaces -> underscores for compatibility)
+        const normalizedFlowCommand = normalizeCommandName(flowCommand);
+        const normalizedStateCommand = normalizeCommandName(state.command || '');
+
+        const matches = normalizedFlowCommand === normalizedStateCommand;
+        this.log(`  → Normalized: flow="${normalizedFlowCommand}", state="${normalizedStateCommand}"`);
+        this.log(`  → Match result: ${matches}`);
+        return matches;
+      });
+
+      this.log('Flow trigger card registered with run listener');
 
       // Initialize Flow Manager with trigger card FIRST
       this.log('Initializing Flow Manager...');
@@ -66,6 +87,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.toolRegistry.register(new TriggerAnyFlowTool(this.homey, this.flowManager));
       this.toolRegistry.register(new HomeStructureTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new GetStatesTool(this.homey, this.zoneDeviceManager));
+      this.toolRegistry.register(new GetFlowOverviewTool(this.homey, this.flowManager));
       this.toolRegistry.register(new ControlDeviceTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new ToggleDeviceTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new SetLightTool(this.homey, this.zoneDeviceManager));

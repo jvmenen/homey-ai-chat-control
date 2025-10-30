@@ -97,14 +97,19 @@
             "placeholder": {
               "en": "e.g., play_radio, toggle_lights",
               "nl": "bijv. speel_radio, schakel_lampen"
+            },
+            "hint": {
+              "en": "Use lowercase with underscores (no spaces allowed). Examples: play_radio, turn_on_lights",
+              "nl": "Gebruik kleine letters met underscores (geen spaties toegestaan). Voorbeelden: speel_radio, schakel_lampen_aan"
             }
           },
           {
             "type": "text",
             "name": "description",
+            "required": false,
             "title": {
-              "en": "Description",
-              "nl": "Beschrijving"
+              "en": "Description (optional)",
+              "nl": "Beschrijving (optioneel)"
             },
             "placeholder": {
               "en": "Explain what this tool does for the AI",
@@ -118,6 +123,7 @@
           {
             "type": "text",
             "name": "parameters",
+            "required": false,
             "title": {
               "en": "Parameters (optional)",
               "nl": "Parameters (optioneel)"

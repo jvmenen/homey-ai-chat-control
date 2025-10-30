@@ -10,5 +10,10 @@
 
 export { IHomeyClient } from './IHomeyClient';
 export { IHomeyApiClient } from './IHomeyApiClient';
-export { IFlowManager } from './IFlowManager';
+export {
+  IFlowManager,
+  FlowOverviewData,
+  FlowOverviewItem,
+  FlowCardInfo,
+} from './IFlowManager';
 export { IZoneDeviceManager } from './IZoneDeviceManager';

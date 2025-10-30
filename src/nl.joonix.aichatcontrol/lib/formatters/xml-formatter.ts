@@ -2,6 +2,8 @@
  * XML Formatter - Format data structures as XML for MCP responses
  */
 
+import { FlowOverviewData } from '../interfaces';
+
 /**
  * Device states data (from ZoneDeviceManager.getStates())
  */
@@ -248,6 +250,107 @@ export class XMLFormatter {
 - "value" contains the raw value, "type" shows the data type
 - Active zones show which rooms currently have motion/presence detected
 - Use get_home_structure to look up zone name from zone ID
+`;
+  }
+
+  /**
+   * Format complete flow overview as XML (similar to formatHomeStructure)
+   * @param overview - Flow overview data from FlowManager
+   * @returns Formatted XML string with instructions
+   */
+  static formatFlowOverview(overview: FlowOverviewData): string {
+    const { summary } = overview;
+
+    let message = `Here is your complete flow overview in XML format for easy parsing:\n\n`;
+    message += `SUMMARY: ${summary.total} flows (${summary.enabled} enabled, ${summary.disabled} disabled, ${summary.mcpFlows} MCP flows)\n\n`;
+    message += `<flows total="${summary.total}" enabled="${summary.enabled}" disabled="${summary.disabled}">\n`;
+
+    for (const flow of overview.flows) {
+      message += this.buildFlowXML(flow);
+    }
+
+    message += `</flows>\n\n`;
+    message += this.getFlowOverviewInstructions();
+
+    return message;
+  }
+
+  /**
+   * Build XML for a single flow
+   */
+  private static buildFlowXML(flow: FlowOverviewData['flows'][0]): string {
+    let xml = `  <flow id="${this.escapeXml(flow.id)}" name="${this.escapeXml(flow.name)}"`;
+
+    // Only include non-default values
+    if (flow.type === 'advanced') {
+      xml += ` type="advanced"`;
+    }
+
+    if (flow.folder) {
+      xml += ` folder="${this.escapeXml(flow.folder)}"`;
+    }
+
+    if (!flow.enabled) {
+      xml += ` enabled="false"`;
+    }
+
+    if (flow.mcpCommand) {
+      xml += ` mcp-command="${this.escapeXml(flow.mcpCommand)}"`;
+    }
+
+    xml += `>\n`;
+
+    // Add cards
+    for (const card of flow.cards) {
+      xml += `    <${card.type}`;
+      xml += ` app="${this.escapeXml(card.appId)}"`;
+      xml += ` card="${this.escapeXml(card.cardId)}"`;
+
+      if (card.deviceId) {
+        xml += ` device="${this.escapeXml(card.deviceId)}"`;
+      }
+
+      xml += ` />\n`;
+    }
+
+    xml += `  </flow>\n`;
+
+    return xml;
+  }
+
+  /**
+   * Escape XML special characters
+   */
+  private static escapeXml(str: string): string {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /**
+   * Get instructions for flow overview XML
+   */
+  private static getFlowOverviewInstructions(): string {
+    return `INSTRUCTIONS:
+- This shows ALL flows in your Homey (automation logic)
+- Use flow "id" attribute to identify flows
+- Flow "name" is the human-readable name
+- DEFAULT VALUES (omitted when default): enabled="true", type="regular"
+- If enabled/type attributes are MISSING, assume the defaults above
+- "folder" attribute shows flow organization (if used)
+- "mcp-command" attribute indicates MCP trigger flows (AI-callable)
+- Cards show the automation logic: <trigger>, <condition>, <action>
+- "app" attribute shows which Homey app provides this card
+- "card" attribute is the card type ID
+- "device" attribute shows which device is used (optional, not all cards use devices)
+- To find which flows use a specific device, search for device="<device-id>"
+- To find flows by app, search for app="<app-id>"
+- To find flows in a folder, search for folder="<folder-name>"
+- Use get_home_structure to look up device names from device IDs
 `;
   }
 }

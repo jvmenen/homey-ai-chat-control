@@ -82,4 +82,51 @@ export interface IFlowManager {
    * Get flow details by tool name
    */
   getFlowByToolName(toolName: string): Promise<HomeyFlow | null>;
+
+  /**
+   * Get complete flow overview for all flows (similar to getHomeStructure)
+   * Returns comprehensive flow data including cards, devices, apps for AI analysis
+   * @param includeDisabled - Include disabled flows (default: false)
+   */
+  getFlowOverview(includeDisabled?: boolean): Promise<FlowOverviewData>;
+}
+
+/**
+ * Flow overview data structure (similar to HomeStructure)
+ * Contains all flow information in a structured format for XML output
+ */
+export interface FlowOverviewData {
+  flows: FlowOverviewItem[];
+  summary: {
+    total: number;
+    enabled: number;
+    disabled: number;
+    regular: number;
+    advanced: number;
+    mcpFlows: number;
+  };
+}
+
+/**
+ * Single flow item in the overview
+ */
+export interface FlowOverviewItem {
+  id: string;
+  name: string;
+  enabled: boolean;
+  folder?: string;
+  type: 'regular' | 'advanced';
+  mcpCommand?: string; // If this is an MCP trigger flow
+  cards: FlowCardInfo[];
+}
+
+/**
+ * Flow card information
+ */
+export interface FlowCardInfo {
+  type: 'trigger' | 'condition' | 'action';
+  appId: string; // Extracted from URI
+  cardId: string; // Card type ID
+  deviceId?: string; // If card references a device
+  deviceName?: string; // Optional device name for clarity
 }

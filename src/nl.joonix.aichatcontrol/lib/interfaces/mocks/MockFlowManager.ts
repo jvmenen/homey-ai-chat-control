@@ -2,7 +2,7 @@
  * MockFlowManager - Mock implementation for testing
  */
 
-import { IFlowManager } from '../IFlowManager';
+import { IFlowManager, FlowOverviewData } from '../IFlowManager';
 import { HomeyFlow, MCPTool, FlowExecutionResult } from '../../types';
 
 export class MockFlowManager implements IFlowManager {
@@ -94,6 +94,32 @@ export class MockFlowManager implements IFlowManager {
   async getFlowByToolName(toolName: string): Promise<HomeyFlow | null> {
     const flowName = this.toolNameToFlow(toolName);
     return this.mockFlows.find(f => f.name.toLowerCase() === flowName.toLowerCase()) || null;
+  }
+
+  async getFlowOverview(includeDisabled?: boolean): Promise<FlowOverviewData> {
+    // Simple mock implementation
+    const enabledFlows = includeDisabled
+      ? this.mockFlows
+      : this.mockFlows.filter(f => f.enabled !== false);
+
+    return {
+      flows: enabledFlows.map(f => ({
+        id: f.id,
+        name: f.name,
+        enabled: f.enabled !== false,
+        folder: f.folder,
+        type: f.cards ? 'advanced' : 'regular',
+        cards: [],
+      })),
+      summary: {
+        total: enabledFlows.length,
+        enabled: enabledFlows.filter(f => f.enabled !== false).length,
+        disabled: enabledFlows.filter(f => f.enabled === false).length,
+        regular: enabledFlows.filter(f => !f.cards).length,
+        advanced: enabledFlows.filter(f => f.cards).length,
+        mcpFlows: enabledFlows.filter(f => f.name.toLowerCase().startsWith('mcp_')).length,
+      },
+    };
   }
 
   // Test helpers

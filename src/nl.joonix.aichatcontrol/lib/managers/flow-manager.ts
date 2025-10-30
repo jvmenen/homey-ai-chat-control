@@ -6,8 +6,13 @@ import Homey from 'homey';
 import type { HomeyAPI } from 'homey-api';
 import { HomeyFlow, MCPTool, FlowExecutionResult } from '../types';
 import { FlowParser } from '../parsers/flow-parser';
-import { TOKEN_NAMES } from '../constants';
-import { IFlowManager } from '../interfaces';
+import { TOKEN_NAMES, MCP_TRIGGER_IDS } from '../constants';
+import {
+  IFlowManager,
+  FlowOverviewData,
+  FlowOverviewItem,
+  FlowCardInfo,
+} from '../interfaces';
 
 // Type for flow trigger card - use any due to Homey namespace type issues
 type FlowTriggerCard = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -180,6 +185,7 @@ export class FlowManager implements IFlowManager {
 
     // Match lines like: paramName: type(validation)? - description
     // Groups: 1=name, 2=type, 3=validation (optional), 4=optional marker (?), 5=description
+    // Note: Case-insensitive type matching (String, string, NUMBER, etc.)
     const paramRegex = /^\s*(\w+):\s*(string|number|boolean)(?:\(([^)]+)\))?(\?)?\s*-\s*(.+)$/gim;
     let match;
 
@@ -189,14 +195,16 @@ export class FlowManager implements IFlowManager {
       parameterNames.push(paramName);
 
       // Build property schema
+      // Normalize type to lowercase (String -> string, NUMBER -> number, etc.)
       const propSchema: Record<string, unknown> = {
-        type: paramType,
+        type: paramType.toLowerCase(),
         description: paramDescription.trim(),
       };
 
       // Handle validation
       if (validation) {
-        if (paramType === 'number') {
+        const normalizedType = paramType.toLowerCase();
+        if (normalizedType === 'number') {
           // Parse range: "0-100" or "0-100.5"
           const rangeMatch = validation.match(/^([\d.]+)-([\d.]+)$/);
           if (rangeMatch) {
@@ -204,7 +212,7 @@ export class FlowManager implements IFlowManager {
             propSchema.maximum = parseFloat(rangeMatch[2]);
             this.homey.log(`   📝 Number range: ${propSchema.minimum}-${propSchema.maximum}`);
           }
-        } else if (paramType === 'string') {
+        } else if (normalizedType === 'string') {
           // Parse enum: "on|off|auto"
           const enumValues = validation.split('|').map(v => v.trim());
           propSchema.enum = enumValues;
@@ -379,9 +387,11 @@ export class FlowManager implements IFlowManager {
       };
 
       this.homey.log(`Triggering flow card "ai_tool_call" with command="${toolName}"`);
+      this.homey.log(`State: ${JSON.stringify(state)}`);
       this.homey.log(`Tokens: ${JSON.stringify(tokens)}`);
       this.homey.log('Any flows listening for this command will now execute...');
 
+      // Trigger with tokens (for flow usage) and state (for run listener matching)
       await this.triggerCard.trigger(tokens, state);
 
       this.homey.log(`✓ Flow card triggered successfully for command: "${toolName}"`);
@@ -437,5 +447,241 @@ export class FlowManager implements IFlowManager {
       TOKEN_NAMES.VALUE_5,
     ];
     return tokenNames[index] || `value${index + 1}`;
+  }
+
+  /**
+   * Get complete flow overview (similar to getHomeStructure)
+   * Returns all flows with cards, devices, and apps for AI analysis
+   */
+  async getFlowOverview(includeDisabled: boolean = false): Promise<FlowOverviewData> {
+    await this.init();
+
+    try {
+      this.homey.log('📋 Getting complete flow overview...');
+
+      // Get both regular and advanced flows
+      const regularFlows = await this.homeyApi.flow.getFlows();
+      const advancedFlows = await this.homeyApi.flow.getAdvancedFlows();
+
+      // Combine and process all flows
+      const allFlows = { ...regularFlows, ...advancedFlows };
+      const flowItems: FlowOverviewItem[] = [];
+
+      // Summary counters
+      let totalCount = 0;
+      let enabledCount = 0;
+      let disabledCount = 0;
+      let regularCount = 0;
+      let advancedCount = 0;
+      let mcpFlowCount = 0;
+
+      for (const [flowId, flowData] of Object.entries(allFlows)) {
+        const flow = flowData as HomeyAPIFlow;
+
+        // Skip disabled flows if not requested
+        const isEnabled = flow.enabled !== false;
+        if (!isEnabled && !includeDisabled) {
+          continue;
+        }
+
+        totalCount++;
+        if (isEnabled) {
+          enabledCount++;
+        } else {
+          disabledCount++;
+        }
+
+        // Determine flow type
+        const isAdvanced = !!flow.cards;
+        const flowType: 'regular' | 'advanced' = isAdvanced ? 'advanced' : 'regular';
+
+        if (isAdvanced) {
+          advancedCount++;
+        } else {
+          regularCount++;
+        }
+
+        // Check if this is an MCP trigger flow
+        const mcpCommand = this.extractMCPCommand(flow);
+        if (mcpCommand) {
+          mcpFlowCount++;
+        }
+
+        // Extract cards
+        const cards = this.extractFlowCards(flow);
+
+        // Extract folder if available
+        const folder = (flow as any).folder;
+
+        flowItems.push({
+          id: flowId,
+          name: flow.name,
+          enabled: isEnabled,
+          folder,
+          type: flowType,
+          mcpCommand,
+          cards,
+        });
+      }
+
+      this.homey.log(`📋 Flow overview: ${totalCount} flows (${enabledCount} enabled, ${disabledCount} disabled, ${mcpFlowCount} MCP flows)`);
+
+      return {
+        flows: flowItems,
+        summary: {
+          total: totalCount,
+          enabled: enabledCount,
+          disabled: disabledCount,
+          regular: regularCount,
+          advanced: advancedCount,
+          mcpFlows: mcpFlowCount,
+        },
+      };
+    } catch (error) {
+      this.homey.error('FlowManager: Error getting flow overview:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract MCP command name from flow if it's an MCP trigger flow
+   */
+  private extractMCPCommand(flow: HomeyAPIFlow): string | undefined {
+    // Check simple flow trigger
+    if (flow.trigger && this.isMCPTrigger(flow.trigger.id)) {
+      const command = flow.trigger.args?.command;
+      return typeof command === 'string' ? command : undefined;
+    }
+
+    // Check advanced flow cards
+    if (flow.cards) {
+      const cardsArray = Array.isArray(flow.cards)
+        ? flow.cards
+        : Object.values(flow.cards);
+
+      for (const card of cardsArray) {
+        if (card.type === 'trigger' && card.id && this.isMCPTrigger(card.id)) {
+          const command = card.args?.command;
+          return typeof command === 'string' ? command : undefined;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Check if a trigger ID is an MCP trigger
+   */
+  private isMCPTrigger(triggerId: string): boolean {
+    return triggerId === MCP_TRIGGER_IDS.SHORT || triggerId === MCP_TRIGGER_IDS.FULL;
+  }
+
+  /**
+   * Extract all cards from a flow (trigger, conditions, actions)
+   */
+  private extractFlowCards(flow: HomeyAPIFlow): FlowCardInfo[] {
+    const cards: FlowCardInfo[] = [];
+
+    // Handle simple flow (single trigger)
+    if (flow.trigger) {
+      const cardInfo = this.parseCard('trigger', flow.trigger.id, flow.trigger.uri, flow.trigger.args);
+      if (cardInfo) {
+        cards.push(cardInfo);
+      }
+    }
+
+    // Handle advanced flow (multiple cards)
+    if (flow.cards) {
+      const cardsArray = Array.isArray(flow.cards)
+        ? flow.cards
+        : Object.values(flow.cards);
+
+      for (const card of cardsArray) {
+        if (!card.id || !card.type) continue;
+
+        const cardInfo = this.parseCard(card.type as any, card.id, card.uri, card.args);
+        if (cardInfo) {
+          cards.push(cardInfo);
+        }
+      }
+    }
+
+    return cards;
+  }
+
+  /**
+   * Parse a single card to extract app ID, card ID, and device info
+   */
+  private parseCard(
+    type: 'trigger' | 'condition' | 'action',
+    cardId: string,
+    uri?: string,
+    args?: Record<string, unknown>
+  ): FlowCardInfo | null {
+    // Extract app ID from URI (format: homey:app:com.athom.hue:...)
+    const appId = this.extractAppId(uri || cardId);
+
+    // Extract device ID from args (common patterns: device, deviceId, deviceUri)
+    const deviceId = this.extractDeviceId(args);
+
+    return {
+      type,
+      appId,
+      cardId,
+      deviceId,
+    };
+  }
+
+  /**
+   * Extract app ID from URI or card ID
+   * Examples:
+   * - "homey:app:com.athom.hue:trigger:light_on" -> "com.athom.hue"
+   * - "com.athom.hue" -> "com.athom.hue"
+   */
+  private extractAppId(uriOrCardId: string): string {
+    if (!uriOrCardId) {
+      return 'unknown';
+    }
+
+    // Handle URI format: homey:app:com.athom.hue:...
+    if (uriOrCardId.startsWith('homey:app:')) {
+      const parts = uriOrCardId.split(':');
+      if (parts.length >= 3) {
+        return parts[2];
+      }
+    }
+
+    // Handle direct app ID format: com.athom.hue
+    if (uriOrCardId.includes('.')) {
+      const parts = uriOrCardId.split(':');
+      return parts[0];
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Extract device ID from card arguments
+   * Common patterns: device, deviceId, deviceUri
+   */
+  private extractDeviceId(args?: Record<string, unknown>): string | undefined {
+    if (!args) {
+      return undefined;
+    }
+
+    // Try common device argument names
+    const deviceValue = args.device || args.deviceId || args.deviceUri;
+
+    if (typeof deviceValue === 'string') {
+      return deviceValue;
+    }
+
+    // Device might be an object with an id property
+    if (deviceValue && typeof deviceValue === 'object' && 'id' in deviceValue) {
+      return (deviceValue as any).id;
+    }
+
+    return undefined;
   }
 }

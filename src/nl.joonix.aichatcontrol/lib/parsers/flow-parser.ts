@@ -5,6 +5,17 @@
 import { MCP_TRIGGER_IDS } from '../constants';
 
 /**
+ * Normalize command name: replace spaces with underscores, convert to lowercase
+ * Example: "Turn On Lights" -> "turn_on_lights"
+ */
+export function normalizeCommandName(command: string): string {
+  return command
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '_');  // Replace one or more spaces with underscore
+}
+
+/**
  * MCP Flow Information extracted from a Homey flow
  */
 export interface MCPFlowInfo {
@@ -143,10 +154,13 @@ export class FlowParser {
 
     const flowId = flow.id || 'unknown';
 
+    // Normalize command: replace spaces with underscores, lowercase
+    const normalizedCommand = normalizeCommandName(command);
+
     return {
       flowId,
       flowName: flow.name,
-      command,
+      command: normalizedCommand,
       description: typeof args?.description === 'string' ? args.description : undefined,
       parameters: typeof args?.parameters === 'string' ? args.parameters : undefined,
       cardId,
