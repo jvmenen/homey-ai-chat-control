@@ -2,7 +2,6 @@
  * Zone & Device Manager - Handles Homey zones and devices discovery and reading
  */
 
-import Homey from 'homey';
 import type { HomeyAPI } from 'homey-api';
 import {
   HomeyZone,
@@ -11,6 +10,7 @@ import {
   ZoneHierarchy,
   TemperatureReading,
   ZoneTemperatureResult,
+  HomeyInstance,
 } from '../types';
 import { CapabilityValueConverter } from '../utils/capability-value-converter';
 import {
@@ -60,12 +60,12 @@ interface HomeyAPIZone {
 }
 
 export class ZoneDeviceManager implements IZoneDeviceManager {
-  private homey: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
-  private homeyApi!: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- HomeyAPI types are incomplete
+  private homey: HomeyInstance;
+  private homeyApi!: any; // HomeyAPI types don't include all properties we need
   private initialized: boolean = false;
   private isDestroying: boolean = false;
 
-  constructor(homey: any) {
+  constructor(homey: HomeyInstance) {
     this.homey = homey;
   }
 

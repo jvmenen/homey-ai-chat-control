@@ -2,7 +2,7 @@
  * MockFlowManager - Mock implementation for testing
  */
 
-import { IFlowManager, FlowOverviewData } from '../IFlowManager';
+import { IFlowManager, FlowOverviewData, FlowOverviewOptions } from '../IFlowManager';
 import { HomeyFlow, MCPTool, FlowExecutionResult } from '../../types';
 
 export class MockFlowManager implements IFlowManager {
@@ -96,7 +96,9 @@ export class MockFlowManager implements IFlowManager {
     return this.mockFlows.find(f => f.name.toLowerCase() === flowName.toLowerCase()) || null;
   }
 
-  async getFlowOverview(includeDisabled?: boolean): Promise<FlowOverviewData> {
+  async getFlowOverview(options?: FlowOverviewOptions): Promise<FlowOverviewData> {
+    const { includeDisabled = false } = options || {};
+
     // Simple mock implementation
     const enabledFlows = includeDisabled
       ? this.mockFlows

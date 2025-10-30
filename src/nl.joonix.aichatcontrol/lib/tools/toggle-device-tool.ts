@@ -2,16 +2,15 @@
  * Toggle Device Tool - Toggle device on/off state
  */
 
-import Homey from 'homey';
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult } from '../types';
+import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 
 export class ToggleDeviceTool extends BaseTool {
   readonly name = 'toggle_device';
 
   constructor(
-    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+    private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();

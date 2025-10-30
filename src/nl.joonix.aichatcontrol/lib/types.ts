@@ -2,6 +2,12 @@
  * Type definitions for Homey MCP Server
  */
 
+import Homey from 'homey';
+
+// Homey is a namespace, so we use the instance type
+// This extracts the actual Homey instance type from the App class
+export type HomeyInstance = InstanceType<typeof Homey.App>['homey'];
+
 /**
  * Homey Flow structure (from Homey API)
  * Represents both simple flows (with trigger) and advanced flows (with cards)

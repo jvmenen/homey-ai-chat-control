@@ -2,9 +2,8 @@
  * Get States Tool - Get current device state values
  */
 
-import Homey from 'homey';
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult } from '../types';
+import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { XMLFormatter } from '../formatters/xml-formatter';
 
@@ -15,7 +14,7 @@ export class GetStatesTool extends BaseTool {
   readonly name = 'get_states';
 
   constructor(
-    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+    private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();

@@ -86,9 +86,19 @@ export interface IFlowManager {
   /**
    * Get complete flow overview for all flows (similar to getHomeStructure)
    * Returns comprehensive flow data including cards, devices, apps for AI analysis
-   * @param includeDisabled - Include disabled flows (default: false)
+   * @param options - Filter options for flow overview
    */
-  getFlowOverview(includeDisabled?: boolean): Promise<FlowOverviewData>;
+  getFlowOverview(options?: FlowOverviewOptions): Promise<FlowOverviewData>;
+}
+
+/**
+ * Options for filtering flow overview
+ */
+export interface FlowOverviewOptions {
+  includeDisabled?: boolean;  // Include disabled flows (default: false)
+  deviceIds?: string[];       // Filter by device IDs (OR logic - any match)
+  folderPaths?: string[];     // Filter by folder paths (OR logic - any match)
+  appIds?: string[];          // Filter by app IDs (OR logic - any match)
 }
 
 /**
@@ -114,7 +124,9 @@ export interface FlowOverviewItem {
   id: string;
   name: string;
   enabled: boolean;
-  folder?: string;
+  folder?: string; // Folder ID if flow is in a folder
+  folderName?: string; // Human-readable folder name
+  folderPath?: string; // Full folder path (e.g., "Home/Living Room")
   type: 'regular' | 'advanced';
   mcpCommand?: string; // If this is an MCP trigger flow
   cards: FlowCardInfo[];
@@ -129,4 +141,8 @@ export interface FlowCardInfo {
   cardId: string; // Card type ID
   deviceId?: string; // If card references a device
   deviceName?: string; // Optional device name for clarity
+  args?: Record<string, unknown>; // Card arguments/parameters
+  droptoken?: boolean; // Whether this card drops/provides tokens (for triggers)
+  tokens?: Array<{ name: string; type?: string; title?: string }>; // Tokens provided by this card (for triggers)
+  tokenInput?: { deviceId: string; capability: string }; // Token consumed by this card (for conditions/actions)
 }

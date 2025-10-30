@@ -2,16 +2,15 @@
  * Control Zone Lights Tool - Bulk control all lights in a zone
  */
 
-import Homey from 'homey';
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult } from '../types';
+import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 
 export class ControlZoneLightsTool extends BaseTool {
   readonly name = 'control_zone_lights';
 
   constructor(
-    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+    private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();

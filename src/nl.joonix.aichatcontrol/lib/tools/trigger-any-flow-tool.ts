@@ -2,9 +2,8 @@
  * Trigger Any Flow Tool - Execute any Homey flow by command name
  */
 
-import Homey from 'homey';
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult } from '../types';
+import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IFlowManager } from '../interfaces';
 
 /**
@@ -15,7 +14,7 @@ export class TriggerAnyFlowTool extends BaseTool {
   readonly name = 'trigger_any_flow';
 
   constructor(
-    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+    private homey: HomeyInstance,
     private flowManager: IFlowManager
   ) {
     super();

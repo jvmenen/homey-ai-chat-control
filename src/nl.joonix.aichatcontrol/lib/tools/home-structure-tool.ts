@@ -2,9 +2,8 @@
  * Home Structure Tool - Get complete home layout
  */
 
-import Homey from 'homey';
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult } from '../types';
+import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { XMLFormatter } from '../formatters/xml-formatter';
 
@@ -16,7 +15,7 @@ export class HomeStructureTool extends BaseTool {
   readonly name = 'get_home_structure';
 
   constructor(
-    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+    private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();

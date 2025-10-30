@@ -15,5 +15,6 @@ export {
   FlowOverviewData,
   FlowOverviewItem,
   FlowCardInfo,
+  FlowOverviewOptions,
 } from './IFlowManager';
 export { IZoneDeviceManager } from './IZoneDeviceManager';

@@ -2,9 +2,8 @@
  * Flow Manager - Handles Homey flow discovery and execution
  */
 
-import Homey from 'homey';
-import type { HomeyAPI } from 'homey-api';
-import { HomeyFlow, MCPTool, FlowExecutionResult } from '../types';
+import type { HomeyAPIV3Local } from 'homey-api';
+import { HomeyFlow, MCPTool, FlowExecutionResult, HomeyInstance } from '../types';
 import { FlowParser } from '../parsers/flow-parser';
 import { TOKEN_NAMES, MCP_TRIGGER_IDS } from '../constants';
 import {
@@ -12,10 +11,21 @@ import {
   FlowOverviewData,
   FlowOverviewItem,
   FlowCardInfo,
+  FlowOverviewOptions,
 } from '../interfaces';
 
-// Type for flow trigger card - use any due to Homey namespace type issues
-type FlowTriggerCard = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+// FlowCardTrigger doesn't export properly, use any for now
+type FlowCardTrigger = any;
+
+// Type for flow card from Homey API
+interface HomeyAPICard {
+  id: string;
+  type: string;
+  uri?: string;
+  args?: Record<string, unknown>;
+  droptoken?: boolean | string; // Boolean: produces tokens, String: consumes token (e.g., "homey:device:id|capability")
+  tokens?: Array<{ name: string; type?: string; title?: string }>;
+}
 
 // Type for flow objects from Homey API (simplified, as the actual type is complex)
 interface HomeyAPIFlow {
@@ -23,35 +33,21 @@ interface HomeyAPIFlow {
   name: string;
   enabled?: boolean;
   type?: string;
-  trigger?: {
-    id: string;
-    uri?: string;
-    args?: Record<string, unknown>;
-  };
-  cards?: Record<string, {
-    id?: string;
-    type: string;
-    uri?: string;
-    args?: Record<string, unknown>;
-  }> | Array<{
-    id?: string;
-    type: string;
-    uri?: string;
-    args?: Record<string, unknown>;
-  }>;
+  trigger?: HomeyAPICard;
+  cards?: Record<string, HomeyAPICard> | Array<HomeyAPICard>;
   [key: string]: unknown;
 }
 
 export class FlowManager implements IFlowManager {
-  private homey: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
-  private homeyApi!: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- HomeyAPI types are incomplete
+  private homey: HomeyInstance;
+  private homeyApi!: any; // HomeyAPIV3Local type doesn't include .flow property
   private initialized: boolean = false;
-  private triggerCard: FlowTriggerCard;
+  private triggerCard: FlowCardTrigger;
   private availableCommands: Set<string> = new Set();
   // Cache parameter order per command for correct token mapping
   private commandParameterOrder: Map<string, string[]> = new Map();
 
-  constructor(homey: any, triggerCard: FlowTriggerCard) {
+  constructor(homey: HomeyInstance, triggerCard: FlowCardTrigger) {
     this.homey = homey;
     this.triggerCard = triggerCard;
   }
@@ -453,7 +449,8 @@ export class FlowManager implements IFlowManager {
    * Get complete flow overview (similar to getHomeStructure)
    * Returns all flows with cards, devices, and apps for AI analysis
    */
-  async getFlowOverview(includeDisabled: boolean = false): Promise<FlowOverviewData> {
+  async getFlowOverview(options: FlowOverviewOptions = {}): Promise<FlowOverviewData> {
+    const { includeDisabled = false, deviceIds, folderPaths, appIds } = options;
     await this.init();
 
     try {
@@ -462,6 +459,27 @@ export class FlowManager implements IFlowManager {
       // Get both regular and advanced flows
       const regularFlows = await this.homeyApi.flow.getFlows();
       const advancedFlows = await this.homeyApi.flow.getAdvancedFlows();
+
+      // Get all flow folders for name/path resolution
+      const flowFolders = await this.homeyApi.flow.getFlowFolders();
+      this.homey.log(`   Found ${Object.keys(flowFolders).length} flow folders`);
+
+      // Get all devices for app ID lookup
+      const devices = await this.homeyApi.devices.getDevices();
+      const deviceToAppMap = new Map<string, string>();
+      for (const [deviceId, device] of Object.entries(devices)) {
+        const dev = device as any;
+        // Extract app ID from driverId (format: homey:app:com.athom.hue:driver:bulb)
+        if (dev.driverId) {
+          const appMatch = dev.driverId.match(/homey:app:([^:]+)/);
+          if (appMatch) {
+            deviceToAppMap.set(deviceId, appMatch[1]);
+          }
+        }
+      }
+
+      // Build folder hierarchy map (folderId -> { name, parent, path })
+      const folderMap = this.buildFolderHierarchy(flowFolders);
 
       // Combine and process all flows
       const allFlows = { ...regularFlows, ...advancedFlows };
@@ -510,18 +528,38 @@ export class FlowManager implements IFlowManager {
         // Extract cards
         const cards = this.extractFlowCards(flow);
 
-        // Extract folder if available
-        const folder = (flow as any).folder;
+        // Enrich cards with app ID from device lookup
+        for (const card of cards) {
+          if (card.deviceId && card.appId === 'unknown') {
+            const appId = deviceToAppMap.get(card.deviceId);
+            if (appId) {
+              card.appId = appId;
+            }
+          }
+        }
 
-        flowItems.push({
+        // Extract folder information
+        const folderId = (flow as any).folder;
+        const folderInfo = folderId ? folderMap.get(folderId) : undefined;
+
+        const flowItem: FlowOverviewItem = {
           id: flowId,
           name: flow.name,
           enabled: isEnabled,
-          folder,
+          folder: folderId,
+          folderName: folderInfo?.name,
+          folderPath: folderInfo?.path,
           type: flowType,
           mcpCommand,
           cards,
-        });
+        };
+
+        // Apply filters
+        if (!this.matchesFilters(flowItem, { deviceIds, folderPaths, appIds })) {
+          continue;
+        }
+
+        flowItems.push(flowItem);
       }
 
       this.homey.log(`📋 Flow overview: ${totalCount} flows (${enabledCount} enabled, ${disabledCount} disabled, ${mcpFlowCount} MCP flows)`);
@@ -585,7 +623,7 @@ export class FlowManager implements IFlowManager {
 
     // Handle simple flow (single trigger)
     if (flow.trigger) {
-      const cardInfo = this.parseCard('trigger', flow.trigger.id, flow.trigger.uri, flow.trigger.args);
+      const cardInfo = this.parseCard('trigger', flow.trigger);
       if (cardInfo) {
         cards.push(cardInfo);
       }
@@ -600,7 +638,7 @@ export class FlowManager implements IFlowManager {
       for (const card of cardsArray) {
         if (!card.id || !card.type) continue;
 
-        const cardInfo = this.parseCard(card.type as any, card.id, card.uri, card.args);
+        const cardInfo = this.parseCard(card.type as any, card);
         if (cardInfo) {
           cards.push(cardInfo);
         }
@@ -615,21 +653,50 @@ export class FlowManager implements IFlowManager {
    */
   private parseCard(
     type: 'trigger' | 'condition' | 'action',
-    cardId: string,
-    uri?: string,
-    args?: Record<string, unknown>
+    card: HomeyAPICard
   ): FlowCardInfo | null {
+    const cardId = card.id;
+    const uri = card.uri;
+    const args = card.args;
+
     // Extract app ID from URI (format: homey:app:com.athom.hue:...)
     const appId = this.extractAppId(uri || cardId);
 
-    // Extract device ID from args (common patterns: device, deviceId, deviceUri)
-    const deviceId = this.extractDeviceId(args);
+    // Extract device ID from args or URI/cardId
+    const deviceId = this.extractDeviceId(args, uri || cardId);
+
+    // Extract token information
+    let droptoken: boolean | undefined = undefined;
+    let tokens: Array<{ name: string; type?: string; title?: string }> | undefined = undefined;
+    let tokenInput: { deviceId: string; capability: string } | undefined = undefined;
+
+    // Parse droptoken - can be boolean (produces tokens) or string (consumes token)
+    if (card.droptoken) {
+      if (typeof card.droptoken === 'string') {
+        // Droptoken is a string like "homey:device:ID|capability" - this card CONSUMES a token
+        const match = card.droptoken.match(/homey:device:([^|]+)\|(.+)/);
+        if (match) {
+          tokenInput = {
+            deviceId: match[1],
+            capability: match[2],
+          };
+        }
+      } else if (typeof card.droptoken === 'boolean') {
+        // Droptoken is true - this card PRODUCES tokens
+        droptoken = card.droptoken;
+        tokens = card.tokens || undefined;
+      }
+    }
 
     return {
       type,
       appId,
       cardId,
       deviceId,
+      args: args || undefined, // Include card arguments
+      droptoken,
+      tokens,
+      tokenInput,
     };
   }
 
@@ -637,6 +704,7 @@ export class FlowManager implements IFlowManager {
    * Extract app ID from URI or card ID
    * Examples:
    * - "homey:app:com.athom.hue:trigger:light_on" -> "com.athom.hue"
+   * - "homey:manager:logic:gt" -> "homey:manager:logic" (system card)
    * - "com.athom.hue" -> "com.athom.hue"
    */
   private extractAppId(uriOrCardId: string): string {
@@ -652,6 +720,14 @@ export class FlowManager implements IFlowManager {
       }
     }
 
+    // Handle system cards: homey:manager:logic:gt -> homey:manager:logic
+    if (uriOrCardId.startsWith('homey:manager:')) {
+      const parts = uriOrCardId.split(':');
+      if (parts.length >= 3) {
+        return `${parts[0]}:${parts[1]}:${parts[2]}`; // e.g., "homey:manager:logic"
+      }
+    }
+
     // Handle direct app ID format: com.athom.hue
     if (uriOrCardId.includes('.')) {
       const parts = uriOrCardId.split(':');
@@ -662,10 +738,19 @@ export class FlowManager implements IFlowManager {
   }
 
   /**
-   * Extract device ID from card arguments
-   * Common patterns: device, deviceId, deviceUri
+   * Extract device ID from card arguments or URI/cardId
+   * Common patterns: device, deviceId, deviceUri in args, or homey:device:ID in URI
    */
-  private extractDeviceId(args?: Record<string, unknown>): string | undefined {
+  private extractDeviceId(args?: Record<string, unknown>, uriOrCardId?: string): string | undefined {
+    // First, try to extract from URI/cardId (format: homey:device:DEVICE_ID:...)
+    if (uriOrCardId) {
+      const deviceMatch = uriOrCardId.match(/homey:device:([^:]+)/);
+      if (deviceMatch) {
+        return deviceMatch[1];
+      }
+    }
+
+    // Fallback to extracting from args
     if (!args) {
       return undefined;
     }
@@ -683,5 +768,92 @@ export class FlowManager implements IFlowManager {
     }
 
     return undefined;
+  }
+
+  /**
+   * Build folder hierarchy map with names and full paths
+   * Returns a map of folderId -> { name, parent, path }
+   */
+  private buildFolderHierarchy(flowFolders: Record<string, any>): Map<string, { name: string; parent: string | null; path: string }> {
+    const folderMap = new Map<string, { name: string; parent: string | null; path: string }>();
+
+    // First pass: store basic folder info
+    for (const [folderId, folder] of Object.entries(flowFolders)) {
+      folderMap.set(folderId, {
+        name: folder.name || 'Unknown',
+        parent: folder.parent || null,
+        path: '', // Will be computed in second pass
+      });
+    }
+
+    // Second pass: build full paths by walking up the hierarchy
+    for (const [folderId, folderInfo] of folderMap.entries()) {
+      const pathParts: string[] = [];
+      let currentId: string | null = folderId;
+
+      // Walk up the hierarchy to build the full path
+      while (currentId) {
+        const current = folderMap.get(currentId);
+        if (!current) break;
+
+        pathParts.unshift(current.name);
+        currentId = current.parent;
+      }
+
+      // Update the path
+      folderInfo.path = pathParts.join('/');
+    }
+
+    return folderMap;
+  }
+
+  /**
+   * Check if a flow matches the given filters (OR logic within each filter type)
+   * Returns true if flow passes all filter criteria (AND between filter types)
+   */
+  private matchesFilters(
+    flow: FlowOverviewItem,
+    filters: { deviceIds?: string[]; folderPaths?: string[]; appIds?: string[] }
+  ): boolean {
+    const { deviceIds, folderPaths, appIds } = filters;
+
+    // Device filter: Flow must contain at least one of the specified devices
+    if (deviceIds && deviceIds.length > 0) {
+      const flowDeviceIds = flow.cards
+        .map(card => card.deviceId)
+        .filter((id): id is string => !!id);
+
+      const hasMatchingDevice = deviceIds.some(filterId => flowDeviceIds.includes(filterId));
+      if (!hasMatchingDevice) {
+        return false;
+      }
+    }
+
+    // Folder filter: Flow must be in one of the specified folders
+    if (folderPaths && folderPaths.length > 0) {
+      if (!flow.folderPath) {
+        return false; // No folder = doesn't match
+      }
+
+      const hasMatchingFolder = folderPaths.some(filterPath =>
+        flow.folderPath === filterPath
+      );
+      if (!hasMatchingFolder) {
+        return false;
+      }
+    }
+
+    // App filter: Flow must use at least one of the specified apps
+    if (appIds && appIds.length > 0) {
+      const flowAppIds = flow.cards.map(card => card.appId);
+
+      const hasMatchingApp = appIds.some(filterId => flowAppIds.includes(filterId));
+      if (!hasMatchingApp) {
+        return false;
+      }
+    }
+
+    // All filters passed (or no filters specified)
+    return true;
   }
 }

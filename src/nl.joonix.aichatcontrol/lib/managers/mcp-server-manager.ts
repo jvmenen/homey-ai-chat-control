@@ -6,11 +6,10 @@
  * - `args` = Tool-specific arguments passed to tool.execute()
  */
 
-import Homey from 'homey';
 import { ToolRegistry } from '../tools/tool-registry';
 import { IFlowManager } from '../interfaces';
 import { MCP_SERVER_CONFIG, JSONRPC_ERROR_CODES } from '../constants';
-import { MCPTool } from '../types';
+import { MCPTool, HomeyInstance } from '../types';
 
 /**
  * MCP JSON-RPC request structure
@@ -43,7 +42,7 @@ export interface MCPError {
 export class MCPServerManager {
   constructor(
     private toolRegistry: ToolRegistry,
-    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+    private homey: HomeyInstance,
     private flowManager?: IFlowManager
   ) {}
 

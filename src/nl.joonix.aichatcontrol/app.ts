@@ -20,6 +20,7 @@ import { SetThermostatTool } from './lib/tools/set-thermostat-tool';
 import { ControlZoneLightsTool } from './lib/tools/control-zone-lights-tool';
 import { ControlZoneCapabilityTool } from './lib/tools/control-zone-capability-tool';
 import { GetFlowOverviewTool } from './lib/tools/get-flow-overview-tool';
+import { GetInstalledAppsTool } from './lib/tools/get-installed-apps-tool';
 import { normalizeCommandName } from './lib/parsers/flow-parser';
 
 module.exports = class HomeyMCPApp extends Homey.App {
@@ -88,6 +89,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.toolRegistry.register(new HomeStructureTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new GetStatesTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new GetFlowOverviewTool(this.homey, this.flowManager));
+      this.toolRegistry.register(new GetInstalledAppsTool(this.homey));
       this.toolRegistry.register(new ControlDeviceTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new ToggleDeviceTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new SetLightTool(this.homey, this.zoneDeviceManager));

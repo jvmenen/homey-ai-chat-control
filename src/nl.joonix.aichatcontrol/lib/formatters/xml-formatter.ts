@@ -128,7 +128,7 @@ export class XMLFormatter {
       statusAttr += ` ready="not-ready"`;
     }
 
-    return `    <${deviceTag} id="${device.id}" name="${device.name}" app="${appId}"${statusAttr} capabilities="${capsList}" />\n`;
+    return `    <${deviceTag} id="${device.id}" name="${device.name}" app-id="${appId}"${statusAttr} capabilities="${capsList}" />\n`;
   }
 
   /**
@@ -165,14 +165,9 @@ export class XMLFormatter {
   private static getHomeStructureInstructions(): string {
     return `INSTRUCTIONS:
 - This is STATIC data - keep it in your context for the entire conversation
-- Use device "id" attribute to control devices
-- Use zone "id" attribute for zone-based operations
 - Device tag name indicates type: <light>, <socket>, <sensor>, <thermostat>, etc.
-- "app" attribute shows which Homey app controls this device (e.g., com.athom.hue = Philips Hue)
-- "capabilities" attribute is comma-separated list of what you can read/control
 - DEFAULT VALUES (omitted when default): status="available", ready="ready", icon="default"
 - If status/ready/icon attributes are MISSING, assume the defaults above
-- Only non-default values are shown (e.g., status="unavailable" means device is offline)
 - For current values (on/off, temperature, etc.), use get_states tool
 `;
   }
@@ -190,9 +185,9 @@ export class XMLFormatter {
     let message = `Current device states in XML format for easy parsing:\n\n`;
 
     const filterSummary = [];
-    if (filters?.zoneId) filterSummary.push(`zone="${filters.zoneId}"`);
+    if (filters?.zoneId) filterSummary.push(`zone-id="${filters.zoneId}"`);
     if (filters?.capability) filterSummary.push(`capability="${filters.capability}"`);
-    if (filters?.deviceIds) filterSummary.push(`deviceCount="${filters.deviceIds.length}"`);
+    if (filters?.deviceIds) filterSummary.push(`device-count="${filters.deviceIds.length}"`);
 
     message += `<states${filterSummary.length > 0 ? ' ' + filterSummary.join(' ') : ''}>\n`;
 
@@ -201,7 +196,7 @@ export class XMLFormatter {
     } else {
       states.devices.forEach((device) => {
         const deviceTag = device.class || 'device';
-        message += `  <${deviceTag} id="${device.id}" name="${device.name}" zone="${device.zone}">\n`;
+        message += `  <${deviceTag} id="${device.id}" name="${device.name}" zone-id="${device.zone}">\n`;
 
         const capEntries = Object.entries(device.capabilities);
         if (capEntries.length > 0) {
@@ -245,11 +240,9 @@ export class XMLFormatter {
   private static getDeviceStatesInstructions(): string {
     return `INSTRUCTIONS:
 - Device tag name indicates type: <light>, <socket>, <sensor>, etc.
-- Use device "id" attribute to control devices
 - Boolean capabilities have "state" attribute (on/off) for easy checking
-- "value" contains the raw value, "type" shows the data type
 - Active zones show which rooms currently have motion/presence detected
-- Use get_home_structure to look up zone name from zone ID
+- Use get_home_structure to look up zone name from zone-id
 `;
   }
 
@@ -286,8 +279,11 @@ export class XMLFormatter {
       xml += ` type="advanced"`;
     }
 
-    if (flow.folder) {
-      xml += ` folder="${this.escapeXml(flow.folder)}"`;
+    if (flow.folderPath) {
+      xml += ` folder-path="${this.escapeXml(flow.folderPath)}"`;
+    } else if (flow.folder) {
+      // Fallback to folder ID if path not available
+      xml += ` folder-id="${this.escapeXml(flow.folder)}"`;
     }
 
     if (!flow.enabled) {
@@ -303,14 +299,51 @@ export class XMLFormatter {
     // Add cards
     for (const card of flow.cards) {
       xml += `    <${card.type}`;
-      xml += ` app="${this.escapeXml(card.appId)}"`;
-      xml += ` card="${this.escapeXml(card.cardId)}"`;
+      xml += ` app-id="${this.escapeXml(card.appId)}"`;
+      xml += ` card-id="${this.escapeXml(card.cardId)}"`;
 
       if (card.deviceId) {
-        xml += ` device="${this.escapeXml(card.deviceId)}"`;
+        xml += ` device-id="${this.escapeXml(card.deviceId)}"`;
       }
 
-      xml += ` />\n`;
+      // Check if we have args, tokens, or tokenInput to display
+      const hasArgs = card.args && Object.keys(card.args).length > 0;
+      const hasTokens = card.tokens && card.tokens.length > 0;
+      const hasTokenInput = !!card.tokenInput;
+
+      if (hasArgs || hasTokens || hasTokenInput) {
+        xml += `>\n`;
+
+        // Add card arguments if present
+        if (hasArgs) {
+          for (const [key, value] of Object.entries(card.args!)) {
+            // Skip device-related args as they're already in device attribute
+            if (key === 'device' || key === 'deviceId' || key === 'deviceUri') continue;
+
+            const valueStr = typeof value === 'object' ? JSON.stringify(value) : String(value);
+            xml += `      <arg name="${this.escapeXml(key)}" value="${this.escapeXml(valueStr)}" />\n`;
+          }
+        }
+
+        // Add token input if present (token consumed by this card)
+        if (hasTokenInput) {
+          xml += `      <token-input device-id="${this.escapeXml(card.tokenInput!.deviceId)}" capability="${this.escapeXml(card.tokenInput!.capability)}" />\n`;
+        }
+
+        // Add tokens if present (tokens provided by trigger cards)
+        if (hasTokens) {
+          for (const token of card.tokens!) {
+            const tokenName = token.name || 'unknown';
+            const tokenType = token.type || '';
+            const tokenTitle = token.title || tokenName;
+            xml += `      <token name="${this.escapeXml(tokenName)}" type="${this.escapeXml(tokenType)}" title="${this.escapeXml(tokenTitle)}" />\n`;
+          }
+        }
+
+        xml += `    </${card.type}>\n`;
+      } else {
+        xml += ` />\n`;
+      }
     }
 
     xml += `  </flow>\n`;
@@ -337,19 +370,12 @@ export class XMLFormatter {
   private static getFlowOverviewInstructions(): string {
     return `INSTRUCTIONS:
 - This shows ALL flows in your Homey (automation logic)
-- Use flow "id" attribute to identify flows
-- Flow "name" is the human-readable name
 - DEFAULT VALUES (omitted when default): enabled="true", type="regular"
 - If enabled/type attributes are MISSING, assume the defaults above
-- "folder" attribute shows flow organization (if used)
-- "mcp-command" attribute indicates MCP trigger flows (AI-callable)
 - Cards show the automation logic: <trigger>, <condition>, <action>
-- "app" attribute shows which Homey app provides this card
-- "card" attribute is the card type ID
-- "device" attribute shows which device is used (optional, not all cards use devices)
-- To find which flows use a specific device, search for device="<device-id>"
-- To find flows by app, search for app="<app-id>"
-- To find flows in a folder, search for folder="<folder-name>"
+- <arg> elements show card parameters (e.g., temperature value, duration, etc.)
+- <token-input> shows when a card CONSUMES a dynamic variable from another device
+- <token> elements show when a trigger PRODUCES dynamic variables for use in other cards
 - Use get_home_structure to look up device names from device IDs
 `;
   }

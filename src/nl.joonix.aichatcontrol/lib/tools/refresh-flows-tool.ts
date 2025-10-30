@@ -2,9 +2,8 @@
  * Refresh Flows Tool - Manually refresh list of available Homey flows
  */
 
-import Homey from 'homey';
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult } from '../types';
+import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IFlowManager } from '../interfaces';
 import { ToolStateManager } from '../managers/tool-state-manager';
 
@@ -16,7 +15,7 @@ export class RefreshFlowsTool extends BaseTool {
   readonly name = 'refresh_homey_flows';
 
   constructor(
-    private homey: any, // eslint-disable-line @typescript-eslint/no-explicit-any -- Homey type is a namespace
+    private homey: HomeyInstance,
     private flowManager: IFlowManager,
     private toolStateManager: ToolStateManager
   ) {
