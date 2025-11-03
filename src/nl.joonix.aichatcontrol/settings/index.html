@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AI Chat Control Settings</title>
+
+  <!-- REQUIRED: Homey.js script with data-origin attribute -->
+  <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    h1 {
+      color: #00A5FF;
+      margin-bottom: 10px;
+    }
+
+    .intro {
+      color: #666;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    .config-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .config-section h2 {
+      margin-top: 0;
+      color: #333;
+      font-size: 1.3em;
+      border-bottom: 2px solid #00A5FF;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .copy-button {
+      background: #00A5FF;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .copy-button:hover {
+      background: #0088CC;
+    }
+
+    .copy-button:active {
+      background: #006699;
+    }
+
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: 1px solid #ddd;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      line-height: 1.4;
+      margin: 15px 0;
+    }
+
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #c62828;
+    }
+
+    .warning {
+      background: #fff3e0;
+      color: #e65100;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #ff9800;
+      margin: 15px 0;
+    }
+
+    .success-message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4caf50;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 6px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 1000;
+    }
+
+    .success-message.show {
+      opacity: 1;
+    }
+
+    .instructions {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      border-left: 4px solid #2196f3;
+    }
+
+    .instructions ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+
+    .instructions li {
+      margin: 8px 0;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <h1 data-i18n="settings.title">AI Chat Control - MCP Server Configuratie</h1>
+  <p class="intro" data-i18n="settings.intro">
+    Gebruik deze configuratie om Claude Desktop te verbinden met je Homey via de Model Context Protocol (MCP).
+  </p>
+
+  <div id="loading" class="loading" data-i18n="settings.loading">
+    Configuratie laden...
+  </div>
+
+  <div id="content" style="display: none;">
+    <div class="config-section">
+      <h2 data-i18n="settings.config.title">Claude Desktop Configuratie</h2>
+
+      <div class="instructions">
+        <strong data-i18n="settings.config.instructions_title">Installatie-instructies:</strong>
+        <ol>
+          <li data-i18n="settings.config.step1">Klik op de knop hieronder om de configuratie te kopiëren</li>
+          <li data-i18n="settings.config.step2">Open Claude Desktop op je computer</li>
+          <li data-i18n="settings.config.step3">Ga naar <strong>Settings → Developer → Edit Config</strong></li>
+          <li data-i18n="settings.config.step4">Plak de configuratie in het configuratiebestand</li>
+          <li data-i18n="settings.config.step5">Sla het bestand op en herstart Claude Desktop</li>
+        </ol>
+      </div>
+
+      <pre id="mcp-config">-</pre>
+
+      <button class="copy-button" onclick="copyConfig()" data-i18n="settings.config.copy_button">📋 Kopieer Configuratie naar Klembord</button>
+
+      <div class="warning" style="margin-top: 20px;" data-i18n="settings.config.warning">
+        <strong>Let op:</strong> Zorg ervoor dat je computer en Homey op hetzelfde netwerk zijn aangesloten.
+        De MCP server draait op poort <strong>3000</strong>.
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h2 data-i18n="settings.details.title">MCP Server Details</h2>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 10px; font-weight: bold;" data-i18n="settings.details.endpoint">MCP Endpoint:</td>
+          <td style="padding: 10px; font-family: 'Courier New', monospace;" id="mcp-url">-</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 10px; font-weight: bold;" data-i18n="settings.details.port">Poort:</td>
+          <td style="padding: 10px;" id="mcp-port">-</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold;" data-i18n="settings.details.protocol">Protocol:</td>
+          <td style="padding: 10px;" data-i18n="settings.details.protocol_value">HTTP (lokaal netwerk)</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div id="error-content" style="display: none;">
+    <div class="config-section">
+      <div class="error" id="error-message">
+        Er is een fout opgetreden bij het laden van de configuratie.
+      </div>
+    </div>
+  </div>
+
+  <div class="success-message" id="success-message" data-i18n="settings.config.success">
+    ✓ Configuratie gekopieerd naar klembord!
+  </div>
+
+  <script>
+    let configData = null;
+
+    function onHomeyReady(Homey) {
+      // Call API to get Homey IP and config
+      Homey.api('GET', '/settings/config', null, function(err, result) {
+        document.getElementById('loading').style.display = 'none';
+
+        if (err) {
+          showError(Homey.__('settings.error.title') + ' ' + err);
+          Homey.ready();
+          return;
+        }
+
+        if (result.error) {
+          if (result.platform === 'cloud') {
+            showError(Homey.__('settings.error.cloud'));
+          } else {
+            showError(Homey.__('settings.error.title') + ' ' + result.error);
+          }
+          Homey.ready();
+          return;
+        }
+
+        // Store config data
+        configData = result;
+
+        // Display MCP URL and port
+        document.getElementById('mcp-url').textContent = result.mcpUrl;
+        document.getElementById('mcp-port').textContent = result.port;
+
+        // Build and display formatted MCP config
+        const mcpConfig = {
+          "mcpServers": {
+            "homey": {
+              "command": "npx",
+              "args": [
+                "-y",
+                "mcp-remote",
+                result.mcpUrl,
+                "--allow-http"
+              ]
+            }
+          }
+        };
+
+        document.getElementById('mcp-config').textContent = JSON.stringify(mcpConfig, null, 2);
+
+        // Show content
+        document.getElementById('content').style.display = 'block';
+
+        // Signal that settings page is ready
+        Homey.ready();
+      });
+    }
+
+    function showError(message) {
+      document.getElementById('error-message').innerHTML = message;
+      document.getElementById('error-content').style.display = 'block';
+    }
+
+    function copyConfig() {
+      const configText = document.getElementById('mcp-config').textContent;
+
+      navigator.clipboard.writeText(configText).then(function() {
+        // Show success message
+        const successMsg = document.getElementById('success-message');
+        successMsg.classList.add('show');
+
+        // Hide after 3 seconds
+        setTimeout(function() {
+          successMsg.classList.remove('show');
+        }, 3000);
+      }, function(err) {
+        alert('Kopiëren mislukt: ' + err);
+      });
+    }
+  </script>
+</body>
+</html>

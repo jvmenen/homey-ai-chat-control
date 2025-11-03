@@ -1,1 +1,30 @@
-{}
+{
+  "settings": {
+    "title": "AI Chat Control - MCP Server Configuration",
+    "intro": "Use this configuration to connect Claude Desktop to your Homey via the Model Context Protocol (MCP).",
+    "loading": "Loading configuration...",
+    "config": {
+      "title": "Claude Desktop Configuration",
+      "instructions_title": "Installation instructions:",
+      "step1": "Click the button below to copy the configuration",
+      "step2": "Open Claude Desktop on your computer",
+      "step3": "Go to <strong>Settings → Developer → Edit Config</strong>",
+      "step4": "Paste the configuration into the config file",
+      "step5": "Save the file and restart Claude Desktop",
+      "copy_button": "📋 Copy Configuration to Clipboard",
+      "warning": "<strong>Note:</strong> Make sure your computer and Homey are connected to the same network. The MCP server runs on port <strong>3000</strong>.",
+      "success": "✓ Configuration copied to clipboard!"
+    },
+    "details": {
+      "title": "MCP Server Details",
+      "endpoint": "MCP Endpoint:",
+      "port": "Port:",
+      "protocol": "Protocol:",
+      "protocol_value": "HTTP (local network)"
+    },
+    "error": {
+      "title": "Error loading configuration:",
+      "cloud": "<strong>Homey Cloud is not supported</strong><br><br>This app requires Homey Pro with local network connectivity. The MCP server cannot run on Homey Cloud as it requires local access."
+    }
+  }
+}
