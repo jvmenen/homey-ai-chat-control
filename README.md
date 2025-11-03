@@ -18,8 +18,9 @@ AI Chat Control connects your Homey to AI assistants like Claude Desktop. Simply
 ## Quick Start
 
 1. Install the app from the Homey App Store
-2. Find your Homey's local IP address
-3. Configure Claude Desktop with this config:
+2. Open the app settings in Homey and copy the configuration (easiest!)
+   - Or manually find your Homey's local IP address
+3. Configure Claude Desktop with the config from step 2:
 
 ```json
 {

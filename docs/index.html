@@ -234,24 +234,30 @@
                 <li>Tap <strong>Install</strong></li>
             </ol>
 
-            <h3>Step 2: Find Your Homey's IP Address</h3>
-            <div class="step">
-                <p><strong>Method 1: Via Homey App</strong></p>
+            <h3>Step 2: Get Your MCP Configuration</h3>
+
+            <div class="success">
+                <h4>✨ NEW in v2.1.0: Easy Configuration via App Settings</h4>
+                <p><strong>Recommended Method:</strong> Use the built-in settings page for instant configuration!</p>
                 <ol>
-                    <li>Open the Homey app</li>
-                    <li>Go to <strong>More</strong> → <strong>Settings</strong></li>
-                    <li>Under System Info, tap <strong>General</strong></li>
-                    <li>Tap <strong>About</strong></li>
-                    <li>Under Connectivity, look for the <strong>Wi-Fi address</strong> value</li>
+                    <li>In the Homey app, go to <strong>More</strong> → <strong>Apps</strong></li>
+                    <li>Find <strong>AI Chat Control</strong> and tap on it</li>
+                    <li>Tap the <strong>Settings</strong> icon (gear icon)</li>
+                    <li>You'll see your complete Claude Desktop configuration ready to copy</li>
+                    <li>Tap <strong>"Copy Configuration to Clipboard"</strong></li>
+                    <li>Skip to <a href="#claude-config">Step 3: Configure Claude Desktop</a></li>
                 </ol>
+                <p><strong>Benefits:</strong> No manual IP address lookup needed, automatic language detection (EN/NL), and guaranteed correct configuration format!</p>
             </div>
 
             <div class="step">
-                <p><strong>Method 2: Via Router</strong></p>
+                <p><strong>Alternative: Manual IP Address Lookup</strong></p>
+                <p>If you prefer to find your Homey's IP address manually:</p>
                 <ol>
-                    <li>Log in to your router's admin panel</li>
-                    <li>Look for connected devices</li>
-                    <li>Find "Homey" in the device list</li>
+                    <li>Open the Homey app</li>
+                    <li>Go to <strong>More</strong> → <strong>Settings</strong> → <strong>General</strong> → <strong>About</strong></li>
+                    <li>Under Connectivity, look for the <strong>Wi-Fi address</strong></li>
+                    <li>Use this IP in the configuration shown in Step 3</li>
                 </ol>
             </div>
 
@@ -265,6 +271,10 @@
 
             <h3>What is MCP?</h3>
             <p>Model Context Protocol (MCP) is a standard that allows AI assistants like Claude to communicate with external tools and services. AI Chat Control uses MCP to let Claude control your Homey.</p>
+
+            <div class="info">
+                <strong>💡 Pro Tip:</strong> If you used the app settings page in Step 2, you already have the configuration copied! Just paste it into the Claude config file below.
+            </div>
 
             <h3>Step-by-Step Configuration</h3>
 
