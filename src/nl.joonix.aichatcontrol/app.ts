@@ -155,8 +155,9 @@ module.exports = class HomeyMCPApp extends Homey.App {
     const host = MCP_SERVER_CONFIG.HTTP_HOST;
     this.httpServer = app.listen(port, host, () => {
       this.log(`✓ MCP Server listening on ${host}:${port}`);
-      this.log(`✓ Access URL: http://<homey-ip>:${port}/mcp`);
-      this.log(`✓ Health check: http://<homey-ip>:${port}/health`);
+      this.log(`✓ MCP Server URL: http://<homey-ip>:${port}/mcp`);
+      this.log(`✓ Health check URL: http://<homey-ip>:${port}/health`);
+      this.log('  Replace <homey-ip> with your Homey\'s local IP address');
     });
 
     this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
