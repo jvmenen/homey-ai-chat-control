@@ -538,7 +538,7 @@ color: string(red|green|blue) - Light color</code></pre>
         <div class="card" id="troubleshooting">
             <h2>🔧 Troubleshooting</h2>
 
-            <h3>Claude Can't Connect to Homey</h3>
+            <h3 id="cant-connect">Claude Can't Connect to Homey</h3>
 
             <div class="step">
                 <h4>Check Network Connection</h4>
@@ -566,7 +566,7 @@ color: string(red|green|blue) - Light color</code></pre>
                 <p>You should see a JSON response with status information. If you get an error or timeout, the app may not be running.</p>
             </div>
 
-            <h3>Flow Triggers Not Working</h3>
+            <h3 id="flow-triggers">Flow Triggers Not Working</h3>
 
             <ul>
                 <li>Check that the command name in your Flow exactly matches what you tell Claude</li>
@@ -574,7 +574,7 @@ color: string(red|green|blue) - Light color</code></pre>
                 <li>Ask Claude to refresh the flows: "Refresh the Homey flows"</li>
             </ul>
 
-            <h3>Commands Not Recognized</h3>
+            <h3 id="commands-not-recognized">Commands Not Recognized</h3>
 
             <ul>
                 <li>Be specific: "Turn on the living room lights" instead of "lights on"</li>
@@ -582,11 +582,92 @@ color: string(red|green|blue) - Light color</code></pre>
                 <li>Claude understands natural language - just ask normally</li>
             </ul>
 
-            <h3>Performance Issues</h3>
+            <h3 id="spawn-npx-error">"spawn npx ENOENT" Error (macOS/Linux)</h3>
+
+            <div class="step">
+                <p>This error means Claude Desktop can't find the <code>npx</code> command. This typically happens on macOS or Linux when Node.js isn't in the system PATH.</p>
+
+                <h4>Quick Fix: Verify Node.js Installation</h4>
+                <ol>
+                    <li>Open Terminal</li>
+                    <li>Run these commands to verify Node.js is installed:
+                        <pre><code>node --version
+npm --version
+npx --version</code></pre>
+                    </li>
+                    <li>If any command fails, install Node.js from <a href="https://nodejs.org/" target="_blank">nodejs.org</a></li>
+                </ol>
+
+                <h4>If Node.js is Installed but Error Persists</h4>
+                <p><strong>Option 1: Find the npx path and use it directly</strong></p>
+                <ol>
+                    <li>In Terminal, run: <code>which npx</code></li>
+                    <li>Copy the full path (e.g., <code>/usr/local/bin/npx</code> or <code>/opt/homebrew/bin/npx</code>)</li>
+                    <li>In your Claude config, replace <code>"command": "npx"</code> with the full path:
+                        <pre><code>{
+  "mcpServers": {
+    "homey": {
+      "command": "/usr/local/bin/npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://192.168.1.50:3000/mcp",
+        "--allow-http"
+      ]
+    }
+  }
+}</code></pre>
+                    </li>
+                    <li>Save and restart Claude Desktop completely</li>
+                </ol>
+
+                <p><strong>Option 2: Install mcp-remote globally</strong></p>
+                <ol>
+                    <li>In Terminal, run: <code>npm install -g mcp-remote</code></li>
+                    <li>Find where it was installed: <code>which mcp-remote</code></li>
+                    <li>Use the full path in your config:
+                        <pre><code>{
+  "mcpServers": {
+    "homey": {
+      "command": "/usr/local/bin/mcp-remote",
+      "args": [
+        "http://192.168.1.50:3000/mcp",
+        "--allow-http"
+      ]
+    }
+  }
+}</code></pre>
+                    </li>
+                    <li>Save and restart Claude Desktop completely</li>
+                </ol>
+            </div>
+
+            <div class="warning">
+                <strong>⚠️ macOS Users:</strong> If you installed Node.js via Homebrew on Apple Silicon (M1/M2/M3/M4), npx is typically located at <code>/opt/homebrew/bin/npx</code>
+            </div>
+
+            <h3 id="tools-fail">Connection Works But Tools Fail</h3>
+
+            <div class="step">
+                <p>If Claude can see Homey tools but they fail when executed:</p>
+                <ol>
+                    <li>Verify the health endpoint works: <code>http://[YOUR-HOMEY-IP]:3000/health</code></li>
+                    <li>Check Claude Desktop's logs:
+                        <ul>
+                            <li><strong>macOS:</strong> Click the hamburger menu (≡) → "View Logs"</li>
+                            <li><strong>Windows:</strong> Click the hamburger menu (≡) → "View Logs"</li>
+                        </ul>
+                    </li>
+                    <li>Look for specific error messages and share them in the forum for help</li>
+                    <li>Try restarting both the AI Chat Control app in Homey and Claude Desktop</li>
+                </ol>
+            </div>
+
+            <h3 id="performance">Performance Issues</h3>
 
             <ul>
                 <li>Restart the AI Chat Control app in Homey</li>
-                <li>Restart Claude Desktop</li>
+                <li>Restart Claude Desktop (make sure it's fully quit, not just minimized)</li>
                 <li>Check your Homey's performance in the Homey app</li>
             </ul>
 
