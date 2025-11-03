@@ -652,14 +652,30 @@ npx --version</code></pre>
                 <p>If Claude can see Homey tools but they fail when executed:</p>
                 <ol>
                     <li>Verify the health endpoint works: <code>http://[YOUR-HOMEY-IP]:3000/health</code></li>
-                    <li>Check Claude Desktop's logs:
-                        <ul>
-                            <li><strong>macOS:</strong> Click the hamburger menu (≡) → "View Logs"</li>
-                            <li><strong>Windows:</strong> Click the hamburger menu (≡) → "View Logs"</li>
-                        </ul>
+                    <li>Check the detailed MCP server logs:
+                        <h4>Finding the MCP Server Log File</h4>
+                        <p><strong>macOS:</strong></p>
+                        <ol>
+                            <li>Open Finder and press <code>Cmd+Shift+G</code></li>
+                            <li>Paste: <code>~/Library/Application Support/Claude</code> and press Enter</li>
+                            <li>Open the <code>logs</code> folder</li>
+                            <li>Look for <code>mcp-server-homey.log</code></li>
+                            <li>Open it and scroll to the bottom for recent errors</li>
+                        </ol>
+
+                        <p><strong>Windows:</strong></p>
+                        <ol>
+                            <li>Press <code>Win+R</code> and type: <code>%APPDATA%\Claude</code></li>
+                            <li>Open the <code>logs</code> folder</li>
+                            <li>Look for <code>mcp-server-homey.log</code></li>
+                            <li>Open it and scroll to the bottom for recent errors</li>
+                        </ol>
+
+                        <p><strong>💡 Tip:</strong> If the log file is very large and hard to read, delete it and restart Claude Desktop. Claude will create a fresh log file with only new entries, making it much easier to spot errors.</p>
                     </li>
-                    <li>Look for specific error messages and share them in the forum for help</li>
+                    <li>Look for specific error messages in the log file</li>
                     <li>Try restarting both the AI Chat Control app in Homey and Claude Desktop</li>
+                    <li>Share the error messages in the forum for help if the issue persists</li>
                 </ol>
             </div>
 
