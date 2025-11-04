@@ -22,6 +22,12 @@
   "permissions": [
     "homey:manager:api"
   ],
+  "api": {
+    "getSettingsConfig": {
+      "method": "GET",
+      "path": "/settings/config"
+    }
+  },
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",

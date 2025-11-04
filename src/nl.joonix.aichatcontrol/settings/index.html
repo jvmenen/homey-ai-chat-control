@@ -301,9 +301,7 @@
 
         // Store for later use
         window.homeyMcpConfig = mcpConfig;
-        window.homeyServerBlock = {
-          "homey": mcpConfig.mcpServers.homey
-        };
+        window.homeyServerBlock = mcpConfig.mcpServers.homey;
 
         // Initial display
         updateConfigDisplay();
@@ -329,15 +327,18 @@
         configPre.textContent = JSON.stringify(window.homeyMcpConfig, null, 2);
 
       } else if (scenario === 'existing') {
-        // Show only the homey server block
+        // Show only the homey server block with comma prefix
         mergeSection.style.display = 'none';
         instructionsSection.style.display = 'block';
-        configPre.textContent = JSON.stringify(window.homeyServerBlock, null, 2);
+
+        // Format as: ,"homey": {...}
+        const homeyBlock = ',"homey": ' + JSON.stringify(window.homeyServerBlock, null, 2);
+        configPre.textContent = homeyBlock;
 
         // Update step 4 instruction
         const step4 = document.getElementById('step4');
         if (step4) {
-          step4.innerHTML = '<strong>Voeg dit toe binnen je bestaande "mcpServers" object</strong> (plaats een komma na je laatste server en plak dit erna)';
+          step4.innerHTML = '<strong>Plak dit direct na je laatste MCP server</strong> (binnen het "mcpServers" object, voor de sluit-haak)';
         }
 
       } else if (scenario === 'merge') {
