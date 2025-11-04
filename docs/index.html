@@ -234,47 +234,16 @@
                 <li>Tap <strong>Install</strong></li>
             </ol>
 
-            <h3>Step 2: Get Your MCP Configuration</h3>
-
-            <div class="success">
-                <h4>✨ NEW in v2.1.0: Easy Configuration via App Settings</h4>
-                <p><strong>Recommended Method:</strong> Use the built-in settings page for instant configuration!</p>
-                <ol>
-                    <li>In the Homey app, go to <strong>More</strong> → <strong>Apps</strong></li>
-                    <li>Find <strong>AI Chat Control</strong> and tap on it</li>
-                    <li>Tap the <strong>Settings</strong> icon (gear icon)</li>
-                    <li>You'll see your complete Claude Desktop configuration ready to copy</li>
-                    <li>Tap <strong>"Copy Configuration to Clipboard"</strong></li>
-                    <li>Skip to <a href="#claude-config">Step 3: Configure Claude Desktop</a></li>
-                </ol>
-                <p><strong>Benefits:</strong> No manual IP address lookup needed, automatic language detection (EN/NL), and guaranteed correct configuration format!</p>
-            </div>
-
-            <div class="step">
-                <p><strong>Alternative: Manual IP Address Lookup</strong></p>
-                <p>If you prefer to find your Homey's IP address manually:</p>
-                <ol>
-                    <li>Open the Homey app</li>
-                    <li>Go to <strong>More</strong> → <strong>Settings</strong> → <strong>General</strong> → <strong>About</strong></li>
-                    <li>Under Connectivity, look for the <strong>Wi-Fi address</strong></li>
-                    <li>Use this IP in the configuration shown in Step 3</li>
-                </ol>
-            </div>
-
             <div class="warning">
                 <strong>⚠️ Important:</strong> Your computer and Homey must be on the same local network for this app to work.
             </div>
         </div>
 
         <div class="card" id="claude-config">
-            <h2>🔧 Configure Claude Desktop</h2>
+            <h2>🔧 Step 2: Configure Claude Desktop</h2>
 
             <h3>What is MCP?</h3>
             <p>Model Context Protocol (MCP) is a standard that allows AI assistants like Claude to communicate with external tools and services. AI Chat Control uses MCP to let Claude control your Homey.</p>
-
-            <div class="info">
-                <strong>💡 Pro Tip:</strong> If you used the app settings page in Step 2, you already have the configuration copied! Just paste it into the Claude config file below.
-            </div>
 
             <h3>Step-by-Step Configuration</h3>
 
@@ -304,8 +273,44 @@
             </div>
 
             <div class="step">
-                <h4>2. Edit the Configuration File</h4>
-                <p>Open the file in a text editor and add the following configuration:</p>
+                <h4>2. Get Your Configuration</h4>
+
+                <p><strong>Recommended: Use the App Settings Page</strong></p>
+                <p>The easiest way to get the correct configuration is through the app's settings page:</p>
+                <ol>
+                    <li>In the Homey app, go to <strong>More</strong> → <strong>Apps</strong></li>
+                    <li>Find <strong>AI Chat Control</strong> and tap on it</li>
+                    <li>Tap the <strong>Settings</strong> icon (gear icon)</li>
+                    <li>Choose your configuration scenario:</li>
+                </ol>
+
+                <div style="margin-left: 2rem; margin-top: 1rem; margin-bottom: 1rem;">
+                    <p><strong>New Configuration:</strong> Choose this if you don't have an MCP configuration yet. You'll get a complete config file.</p>
+                    <p><strong>Existing Configuration:</strong> Choose this if you already have other MCP servers. You'll get just the Homey block to add manually.</p>
+                    <p><strong>Automatic Merge:</strong> Paste your current config and the app will merge Homey into it for you.</p>
+                </div>
+
+                <ol start="5">
+                    <li>Tap <strong>"Copy Configuration to Clipboard"</strong></li>
+                    <li>Paste the configuration into the Claude Desktop config file you opened in step 1</li>
+                </ol>
+
+                <div class="info">
+                    <strong>Benefits:</strong> No manual IP address lookup needed, automatic language detection (EN/NL), and guaranteed correct configuration format!
+                </div>
+            </div>
+
+            <div class="step">
+                <h4>Alternative: Manual Configuration</h4>
+
+                <p>If you prefer to configure manually, find your Homey's IP address:</p>
+                <ol>
+                    <li>Open the Homey app</li>
+                    <li>Go to <strong>More</strong> → <strong>Settings</strong> → <strong>General</strong> → <strong>About</strong></li>
+                    <li>Under Connectivity, look for the <strong>Wi-Fi address</strong></li>
+                </ol>
+
+                <p>Then add this configuration to your Claude Desktop config file:</p>
                 <pre><code>{
   "mcpServers": {
     "homey": {
@@ -324,29 +329,7 @@
             </div>
 
             <div class="step">
-                <h4>3. Full Example Configuration</h4>
-                <p>If you already have other MCP servers configured, your file might look like this:</p>
-                <pre><code>{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/username/Documents"]
-    },
-    "homey": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "http://192.168.1.50:3000/mcp",
-        "--allow-http"
-      ]
-    }
-  }
-}</code></pre>
-            </div>
-
-            <div class="step">
-                <h4>4. Restart Claude Desktop</h4>
+                <h4>3. Restart Claude Desktop</h4>
                 <ol>
                     <li>Save the configuration file</li>
                     <li>Completely quit Claude Desktop</li>

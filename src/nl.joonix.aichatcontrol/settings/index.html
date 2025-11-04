@@ -160,15 +160,56 @@
     <div class="config-section">
       <h2 data-i18n="settings.config.title">Claude Desktop Configuratie</h2>
 
-      <div class="instructions">
-        <strong data-i18n="settings.config.instructions_title">Installatie-instructies:</strong>
-        <ol>
-          <li data-i18n="settings.config.step1">Klik op de knop hieronder om de configuratie te kopiëren</li>
-          <li data-i18n="settings.config.step2">Open Claude Desktop op je computer</li>
-          <li data-i18n="settings.config.step3">Ga naar <strong>Settings → Developer → Edit Config</strong></li>
-          <li data-i18n="settings.config.step4">Plak de configuratie in het configuratiebestand</li>
-          <li data-i18n="settings.config.step5">Sla het bestand op en herstart Claude Desktop</li>
-        </ol>
+      <div class="instructions" style="margin-bottom: 20px;">
+        <strong data-i18n="settings.config.scenario_title">Kies je situatie:</strong>
+        <div style="margin-top: 10px;">
+          <label style="display: block; margin: 10px 0; cursor: pointer;">
+            <input type="radio" name="config-scenario" value="new" checked onchange="updateConfigDisplay()">
+            <strong data-i18n="settings.config.scenario_new">Nieuwe configuratie</strong>
+            <span data-i18n="settings.config.scenario_new_desc" style="display: block; margin-left: 25px; color: #666; font-size: 0.9em;">
+              Ik heb nog geen MCP configuratie in Claude Desktop
+            </span>
+          </label>
+
+          <label style="display: block; margin: 10px 0; cursor: pointer;">
+            <input type="radio" name="config-scenario" value="existing" onchange="updateConfigDisplay()">
+            <strong data-i18n="settings.config.scenario_existing">Bestaande configuratie</strong>
+            <span data-i18n="settings.config.scenario_existing_desc" style="display: block; margin-left: 25px; color: #666; font-size: 0.9em;">
+              Ik heb al andere MCP servers geconfigureerd
+            </span>
+          </label>
+
+          <label style="display: block; margin: 10px 0; cursor: pointer;">
+            <input type="radio" name="config-scenario" value="merge" onchange="updateConfigDisplay()">
+            <strong data-i18n="settings.config.scenario_merge">Automatisch samenvoegen</strong>
+            <span data-i18n="settings.config.scenario_merge_desc" style="display: block; margin-left: 25px; color: #666; font-size: 0.9em;">
+              Plak je huidige configuratie om deze samen te voegen met Homey
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div id="merge-input-section" style="display: none; margin-bottom: 20px;">
+        <label for="existing-config" style="display: block; margin-bottom: 10px; font-weight: bold;">
+          <span data-i18n="settings.config.paste_existing">Plak je huidige Claude Desktop configuratie hier:</span>
+        </label>
+        <textarea id="existing-config" style="width: 100%; min-height: 200px; font-family: 'Courier New', monospace; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" placeholder='{"mcpServers": {...}}'></textarea>
+        <button class="copy-button" onclick="mergeConfig()" style="margin-top: 10px;" data-i18n="settings.config.merge_button">
+          🔄 Samenvoegen
+        </button>
+      </div>
+
+      <div id="instructions-section">
+        <div class="instructions">
+          <strong data-i18n="settings.config.instructions_title">Installatie-instructies:</strong>
+          <ol id="instruction-steps">
+            <li data-i18n="settings.config.step1">Klik op de knop hieronder om de configuratie te kopiëren</li>
+            <li data-i18n="settings.config.step2">Open Claude Desktop op je computer</li>
+            <li data-i18n="settings.config.step3">Ga naar <strong>Settings → Developer → Edit Config</strong></li>
+            <li data-i18n="settings.config.step4" id="step4">Plak de configuratie in het configuratiebestand</li>
+            <li data-i18n="settings.config.step5">Sla het bestand op en herstart Claude Desktop</li>
+          </ol>
+        </div>
       </div>
 
       <pre id="mcp-config">-</pre>
@@ -258,7 +299,14 @@
           }
         };
 
-        document.getElementById('mcp-config').textContent = JSON.stringify(mcpConfig, null, 2);
+        // Store for later use
+        window.homeyMcpConfig = mcpConfig;
+        window.homeyServerBlock = {
+          "homey": mcpConfig.mcpServers.homey
+        };
+
+        // Initial display
+        updateConfigDisplay();
 
         // Show content
         document.getElementById('content').style.display = 'block';
@@ -266,6 +314,80 @@
         // Signal that settings page is ready
         Homey.ready();
       });
+    }
+
+    function updateConfigDisplay() {
+      const scenario = document.querySelector('input[name="config-scenario"]:checked').value;
+      const mergeSection = document.getElementById('merge-input-section');
+      const instructionsSection = document.getElementById('instructions-section');
+      const configPre = document.getElementById('mcp-config');
+
+      if (scenario === 'new') {
+        // Show full config with mcpServers wrapper
+        mergeSection.style.display = 'none';
+        instructionsSection.style.display = 'block';
+        configPre.textContent = JSON.stringify(window.homeyMcpConfig, null, 2);
+
+      } else if (scenario === 'existing') {
+        // Show only the homey server block
+        mergeSection.style.display = 'none';
+        instructionsSection.style.display = 'block';
+        configPre.textContent = JSON.stringify(window.homeyServerBlock, null, 2);
+
+        // Update step 4 instruction
+        const step4 = document.getElementById('step4');
+        if (step4) {
+          step4.innerHTML = '<strong>Voeg dit toe binnen je bestaande "mcpServers" object</strong> (plaats een komma na je laatste server en plak dit erna)';
+        }
+
+      } else if (scenario === 'merge') {
+        // Show merge input
+        mergeSection.style.display = 'block';
+        instructionsSection.style.display = 'none';
+        configPre.textContent = '// Plak je configuratie hierboven en klik op "Samenvoegen"';
+      }
+    }
+
+    function mergeConfig() {
+      const existingConfigText = document.getElementById('existing-config').value.trim();
+
+      if (!existingConfigText) {
+        alert('Plak eerst je bestaande configuratie in het tekstveld hierboven.');
+        return;
+      }
+
+      try {
+        // Parse existing config
+        const existingConfig = JSON.parse(existingConfigText);
+
+        // Ensure mcpServers exists
+        if (!existingConfig.mcpServers) {
+          existingConfig.mcpServers = {};
+        }
+
+        // Add or update homey server
+        existingConfig.mcpServers.homey = window.homeyMcpConfig.mcpServers.homey;
+
+        // Display merged config
+        const configPre = document.getElementById('mcp-config');
+        configPre.textContent = JSON.stringify(existingConfig, null, 2);
+
+        // Show success message
+        showSuccessMessage();
+
+        // Update instructions
+        const instructionsSection = document.getElementById('instructions-section');
+        instructionsSection.style.display = 'block';
+        instructionsSection.innerHTML = `
+          <div class="success">
+            <strong>✅ Configuratie samengevoegd!</strong>
+            <p>De Homey server is toegevoegd aan je bestaande configuratie. Kopieer de onderstaande configuratie en vervang je huidige Claude Desktop config volledig.</p>
+          </div>
+        `;
+
+      } catch (error) {
+        alert('Ongeldige JSON configuratie. Controleer of je de volledige configuratie hebt geplakt.\n\nFout: ' + error.message);
+      }
     }
 
     function showError(message) {
@@ -276,18 +398,57 @@
     function copyConfig() {
       const configText = document.getElementById('mcp-config').textContent;
 
-      navigator.clipboard.writeText(configText).then(function() {
-        // Show success message
-        const successMsg = document.getElementById('success-message');
-        successMsg.classList.add('show');
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(configText).then(function() {
+          showSuccessMessage();
+        }).catch(function(err) {
+          // Fallback to legacy method
+          copyToClipboardFallback(configText);
+        });
+      } else {
+        // Use fallback method
+        copyToClipboardFallback(configText);
+      }
+    }
 
-        // Hide after 3 seconds
-        setTimeout(function() {
-          successMsg.classList.remove('show');
-        }, 3000);
-      }, function(err) {
+    function copyToClipboardFallback(text) {
+      // Create temporary textarea
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+
+      // Select and copy
+      textarea.focus();
+      textarea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showSuccessMessage();
+        } else {
+          alert('Kopiëren mislukt. Selecteer de tekst handmatig en kopieer met Ctrl+C of Cmd+C.');
+        }
+      } catch (err) {
         alert('Kopiëren mislukt: ' + err);
-      });
+      }
+
+      // Remove temporary element
+      document.body.removeChild(textarea);
+    }
+
+    function showSuccessMessage() {
+      const successMsg = document.getElementById('success-message');
+      successMsg.classList.add('show');
+
+      // Hide after 3 seconds
+      setTimeout(function() {
+        successMsg.classList.remove('show');
+      }, 3000);
     }
   </script>
 </body>
