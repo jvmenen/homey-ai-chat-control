@@ -45,6 +45,13 @@ interface HomeStructure {
     available: boolean;
     ready: boolean;
   }>;
+  moods: Array<{
+    id: string;
+    name: string;
+    zone: string;
+    preset: string | null;
+    deviceCount: number;
+  }>;
 }
 
 /**
@@ -52,15 +59,15 @@ interface HomeStructure {
  */
 export class XMLFormatter {
   /**
-   * Format complete home structure (zones + devices) as XML
+   * Format complete home structure (zones + devices + moods) as XML
    * @param structure - Home structure from ZoneDeviceManager
    * @returns Formatted XML string with instructions
    */
   static formatHomeStructure(structure: HomeStructure): string {
     let message = `Here is your complete home structure in XML format for easy parsing:\n\n`;
-    message += `SUMMARY: ${structure.zones.length} zones, ${structure.devices.length} devices\n\n`;
+    message += `SUMMARY: ${structure.zones.length} zones, ${structure.devices.length} devices, ${structure.moods.length} moods\n\n`;
     message += `<home>\n`;
-    message += this.buildZoneHierarchyXML(structure.zones, null, structure.devices);
+    message += this.buildZoneHierarchyXML(structure.zones, null, structure.devices, structure.moods);
     message += `</home>\n\n`;
     message += this.getHomeStructureInstructions();
 
@@ -68,16 +75,18 @@ export class XMLFormatter {
   }
 
   /**
-   * Build hierarchical zone XML with nested devices
+   * Build hierarchical zone XML with nested devices and moods
    * @param zones - All zones
    * @param parentId - Parent zone ID (null for root zones)
    * @param devices - All devices
+   * @param moods - All moods
    * @returns XML string
    */
   private static buildZoneHierarchyXML(
     zones: HomeStructure['zones'],
     parentId: string | null,
-    devices: HomeStructure['devices']
+    devices: HomeStructure['devices'],
+    moods: HomeStructure['moods']
   ): string {
     let xml = '';
     const children = zones.filter((z) => z.parent === parentId);
@@ -93,8 +102,18 @@ export class XMLFormatter {
         xml += this.buildDeviceXML(device);
       });
 
+      // Add moods in this zone
+      const moodsInZone = moods.filter((m) => m.zone === zone.id);
+      if (moodsInZone.length > 0) {
+        xml += `    <moods count="${moodsInZone.length}">\n`;
+        moodsInZone.forEach((mood) => {
+          xml += this.buildMoodXML(mood);
+        });
+        xml += `    </moods>\n`;
+      }
+
       // Recurse for child zones
-      const childXML = this.buildZoneHierarchyXML(zones, zone.id, devices);
+      const childXML = this.buildZoneHierarchyXML(zones, zone.id, devices, moods);
       if (childXML) {
         xml += childXML;
       }
@@ -130,6 +149,16 @@ export class XMLFormatter {
     }
 
     return `    <${deviceTag} id="${device.id}" name="${device.name}" app-id="${appId}"${statusAttr} capabilities="${capsList}" />\n`;
+  }
+
+  /**
+   * Build XML for a single mood
+   * @param mood - Mood data
+   * @returns XML string for mood
+   */
+  private static buildMoodXML(mood: HomeStructure['moods'][0]): string {
+    const presetAttr = mood.preset ? ` preset="${mood.preset}"` : '';
+    return `      <mood id="${mood.id}" name="${mood.name}"${presetAttr} device-count="${mood.deviceCount}" />\n`;
   }
 
   /**
@@ -169,7 +198,9 @@ export class XMLFormatter {
 - Device tag name indicates type: <light>, <socket>, <sensor>, <thermostat>, etc.
 - DEFAULT VALUES (omitted when default): status="available", ready="ready", icon="default"
 - If status/ready/icon attributes are MISSING, assume the defaults above
+- Moods are scenes that control multiple devices at once (nested under their zone)
 - For current values (on/off, temperature, etc.), use get_states tool
+- Moods are read-only (activation not supported via API - users can create custom flows)
 `;
   }
 

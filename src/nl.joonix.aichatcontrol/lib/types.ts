@@ -218,3 +218,20 @@ export interface ZoneTemperatureResult {
   /** Maximum temperature reading */
   max?: number;
 }
+
+/**
+ * Homey Mood representation
+ * A mood is a scene/preset that controls multiple devices at once
+ */
+export interface HomeyMood {
+  /** Unique mood identifier */
+  id: string;
+  /** Mood name (user-configured) */
+  name: string;
+  /** Zone ID where mood is located */
+  zone: string;
+  /** Optional preset template identifier */
+  preset: string | null;
+  /** Device settings for this mood (device ID -> capability values) */
+  devices: Record<string, any>;
+}

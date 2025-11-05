@@ -11,6 +11,7 @@ AI Chat Control connects your Homey to AI assistants like Claude Desktop. Simply
 - "Turn on the living room lights"
 - "Which windows are open?"
 - "Set the thermostat to 21 degrees"
+- "What moods do I have configured?"
 - "What was the temperature in the living room yesterday at 2pm?"
 - "Show me the energy consumption of the washing machine this week"
 - "Which flows use my bedroom lamp?"
@@ -58,6 +59,7 @@ The documentation includes:
 - **Direct Device Control** - Control any device without creating Flows
 - **Historical Data Analysis** - Query device history and analyze trends over time
 - **Flow Overview & Filtering** - Discover which flows use specific devices or apps
+- **Mood Overview** - View all configured moods and which zones they belong to (read-only)
 - **AI-Powered Queries** - Ask intelligent questions about your home
 - **Custom AI Tools** - Create Flow triggers that appear as tools to Claude
 - **Installed Apps Discovery** - View all apps and their capabilities

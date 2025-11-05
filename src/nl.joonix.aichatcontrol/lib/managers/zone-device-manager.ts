@@ -11,6 +11,7 @@ import {
   TemperatureReading,
   ZoneTemperatureResult,
   HomeyInstance,
+  HomeyMood,
 } from '../types';
 import { CapabilityValueConverter } from '../utils/capability-value-converter';
 import {
@@ -713,7 +714,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
 
   /**
    * Get complete home structure in a single call (STATIC data)
-   * Returns all zones, devices, and their capabilities without current values
+   * Returns all zones, devices, moods and their capabilities without current values
    */
   async getHomeStructure(): Promise<{
     zones: Array<{
@@ -733,14 +734,22 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       available: boolean;
       ready: boolean;
     }>;
+    moods: Array<{
+      id: string;
+      name: string;
+      zone: string;
+      preset: string | null;
+      deviceCount: number;
+    }>;
   }> {
     await this.init();
 
     try {
-      // Get all zones and devices in parallel
-      const [zones, devices] = await Promise.all([
+      // Get all zones, devices, and moods in parallel
+      const [zones, devices, moods] = await Promise.all([
         this.getZones(),
         this.getDevices(),
+        this.getMoods(),
       ]);
 
       // Map to simplified structure (no current values, just static info)
@@ -763,11 +772,20 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         ready: device.ready,
       }));
 
-      this.homey.log(`📸 Home structure snapshot: ${zoneList.length} zones, ${deviceList.length} devices`);
+      const moodList = moods.map(mood => ({
+        id: mood.id,
+        name: mood.name,
+        zone: mood.zone,
+        preset: mood.preset,
+        deviceCount: Object.keys(mood.devices).length,
+      }));
+
+      this.homey.log(`📸 Home structure snapshot: ${zoneList.length} zones, ${deviceList.length} devices, ${moodList.length} moods`);
 
       return {
         zones: zoneList,
         devices: deviceList,
+        moods: moodList,
       };
     } catch (error) {
       this.homey.error('ZoneDeviceManager: Failed to get home structure:', error);
@@ -877,4 +895,62 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       throw error;
     }
   }
+
+  // ============================================================================
+  // MOOD OPERATIONS
+  // ============================================================================
+
+  /**
+   * Get all moods
+   */
+  async getMoods(): Promise<HomeyMood[]> {
+    await this.init();
+
+    try {
+      const moodsObj = await this.homeyApi.moods.getMoods();
+      const moods: HomeyMood[] = Object.values(moodsObj).map((mood: any) => ({
+        id: mood.id,
+        name: mood.name,
+        zone: mood.zone,
+        preset: mood.preset || null,
+        devices: mood.devices || {},
+      }));
+
+      this.homey.log(`🎭 Retrieved ${moods.length} moods`);
+      return moods;
+    } catch (error) {
+      this.homey.error('ZoneDeviceManager: Failed to get moods:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a single mood by ID
+   */
+  async getMood(moodId: string): Promise<HomeyMood | null> {
+    await this.init();
+
+    try {
+      const mood = await this.homeyApi.moods.getMood({ id: moodId });
+
+      if (!mood) {
+        return null;
+      }
+
+      return {
+        id: mood.id,
+        name: mood.name,
+        zone: mood.zone,
+        preset: mood.preset || null,
+        devices: mood.devices || {},
+      };
+    } catch (error) {
+      this.homey.error(`ZoneDeviceManager: Failed to get mood ${moodId}:`, error);
+      return null;
+    }
+  }
+
+  // NOTE: activateMood() method removed
+  // Mood activation is NOT supported via the Homey App API (Missing Scopes error)
+  // Use flow-based activation instead via ActivateMoodTool
 }

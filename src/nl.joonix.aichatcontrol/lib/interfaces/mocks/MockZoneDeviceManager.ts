@@ -3,7 +3,7 @@
  */
 
 import { IZoneDeviceManager } from '../IZoneDeviceManager';
-import { HomeyZone, HomeyDevice, ZoneHierarchy, ZoneTemperatureResult } from '../../types';
+import { HomeyZone, HomeyDevice, ZoneHierarchy, ZoneTemperatureResult, HomeyMood } from '../../types';
 
 export class MockZoneDeviceManager implements IZoneDeviceManager {
   private mockZones: HomeyZone[] = [];
@@ -133,6 +133,13 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
       available: boolean;
       ready: boolean;
     }>;
+    moods: Array<{
+      id: string;
+      name: string;
+      zone: string;
+      preset: string | null;
+      deviceCount: number;
+    }>;
   }> {
     return {
       zones: this.mockZones.map(z => ({
@@ -152,6 +159,7 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
         available: d.available,
         ready: d.ready,
       })),
+      moods: [], // Mock has no moods by default
     };
   }
 
@@ -206,6 +214,18 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
         })),
     };
   }
+
+  // Mood operations (mock implementations)
+  async getMoods(): Promise<HomeyMood[]> {
+    return []; // Mock has no moods
+  }
+
+  async getMood(moodId: string): Promise<HomeyMood | null> {
+    return null; // Mock has no moods
+  }
+
+  // NOTE: activateMood() removed - not supported by Homey App API
+  // Use flow-based activation instead
 
   // Test helpers
   addMockZone(zone: HomeyZone): void {

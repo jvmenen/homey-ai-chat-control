@@ -14,6 +14,7 @@ import {
   HomeyDevice,
   ZoneHierarchy,
   ZoneTemperatureResult,
+  HomeyMood,
 } from '../types';
 
 export interface IZoneDeviceManager {
@@ -157,7 +158,7 @@ export interface IZoneDeviceManager {
 
   /**
    * Get complete home structure in a single call (STATIC data)
-   * Returns all zones, devices, and their capabilities without current values
+   * Returns all zones, devices, moods and their capabilities without current values
    */
   getHomeStructure(): Promise<{
     zones: Array<{
@@ -176,6 +177,13 @@ export interface IZoneDeviceManager {
       capabilities: string[];
       available: boolean;
       ready: boolean;
+    }>;
+    moods: Array<{
+      id: string;
+      name: string;
+      zone: string;
+      preset: string | null;
+      deviceCount: number;
     }>;
   }>;
 
@@ -202,4 +210,21 @@ export interface IZoneDeviceManager {
       activeOrigins: string[];
     }>;
   }>;
+
+  // ============================================================================
+  // MOOD OPERATIONS (Read-only)
+  // ============================================================================
+
+  /**
+   * Get all moods
+   */
+  getMoods(): Promise<HomeyMood[]>;
+
+  /**
+   * Get a specific mood by ID
+   */
+  getMood(moodId: string): Promise<HomeyMood | null>;
+
+  // NOTE: Mood activation is NOT supported via the Homey App API
+  // Use flow-based activation instead (see ActivateMoodTool)
 }
