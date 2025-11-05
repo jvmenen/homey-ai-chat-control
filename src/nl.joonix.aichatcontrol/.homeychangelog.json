@@ -16,5 +16,8 @@
   },
   "2.1.0": {
     "en": "Settings Page for Easy Configuration ✨ NEW: App Settings Page - No more manual IP address hunting! Simply open the app settings in Homey to see your complete Claude Desktop configuration ready to copy. ✨ Multilingual Support - Settings page automatically displays in English or Dutch based on your Homey language. ✨ One-Click Copy - Copy the complete MCP configuration to your clipboard with a single click. ✨ Automatic IP Detection - The app automatically detects your Homey's local IP address and generates the correct configuration. This update makes setup significantly easier for new users!"
+  },
+  "2.2.0": {
+    "en": "Mood overview support! Ask your AI assistant about configured moods and see which zones they belong to. Moods are now included in the home structure information, making it easy to discover what mood presets you have available. While activation via AI isn't supported due to API limitations, you can create custom flows using the \"AI Tool call\" trigger card to activate moods through your AI assistant."
   }
 }
