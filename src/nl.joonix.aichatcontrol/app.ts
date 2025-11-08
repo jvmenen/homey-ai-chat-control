@@ -25,6 +25,7 @@ import { GetInstalledAppsTool } from './lib/tools/get-installed-apps-tool';
 import { GetInsightLogsTool } from './lib/tools/get-insight-logs-tool';
 import { GetInsightDataTool } from './lib/tools/get-insight-data-tool';
 import { normalizeCommandName } from './lib/parsers/flow-parser';
+import { getLocalIpAddress } from './lib/utils/network';
 
 module.exports = class HomeyMCPApp extends Homey.App {
   private httpServer!: Server;
@@ -153,11 +154,20 @@ module.exports = class HomeyMCPApp extends Homey.App {
     // Start HTTP server, bind to all interfaces
     const port = MCP_SERVER_CONFIG.HTTP_PORT;
     const host = MCP_SERVER_CONFIG.HTTP_HOST;
+
+    // Get Homey's local IP address for logging
+    const localIp = await getLocalIpAddress(this.homey);
+    if (!localIp) {
+      this.error('Failed to get local IP address - MCP URL will not be shown correctly');
+    }
+
     this.httpServer = app.listen(port, host, () => {
-      this.log(`✓ MCP Server listening on ${host}:${port}`);
-      this.log(`✓ MCP Server URL: http://<homey-ip>:${port}/mcp`);
-      this.log(`✓ Health check URL: http://<homey-ip>:${port}/health`);
-      this.log('  Replace <homey-ip> with your Homey\'s local IP address');
+      this.log(`✓ MCP Server listening on port ${port} (all network interfaces)`);
+      this.log(`✓ MCP Server URL: http://${localIp || '<homey-ip>'}:${port}/mcp`);
+      this.log(`✓ Health check URL: http://${localIp || '<homey-ip>'}:${port}/health`);
+      if (!localIp) {
+        this.log('  Replace <homey-ip> with your Homey\'s local IP address');
+      }
     });
 
     this.httpServer.on('error', (error: NodeJS.ErrnoException) => {

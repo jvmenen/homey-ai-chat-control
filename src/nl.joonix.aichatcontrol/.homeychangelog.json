@@ -19,5 +19,8 @@
   },
   "2.2.0": {
     "en": "Mood overview support! Ask your AI assistant about configured moods and see which zones they belong to. Moods are now included in the home structure information, making it easy to discover what mood presets you have available. While activation via AI isn't supported due to API limitations, you can create custom flows using the \"AI Tool call\" trigger card to activate moods through your AI assistant."
+  },
+  "2.2.1": {
+    "en": "improved IP logging on startup of the app"
   }
 }
