@@ -11,7 +11,13 @@ De Homey MCP server gebruikt momenteel een **traditionele direct tool call patte
 - Betere privacy
 - Meer flexibiliteit voor AI agents
 
-Dit document analyseert onze huidige implementatie en presenteert concrete verbetermogelijkheden.
+**⚠️ KRITISCHE BEPERKING**: De Homey Pro hardware (2 GB RAM, shared platform) kan **geen volledige code execution** ondersteunen zonder stabiliteitsrisico's.
+
+**Pragmatische aanpak**:
+1. **Quick wins op Homey zelf** → ~50-70% token reductie (progressive disclosure, filtering)
+2. **Optionele externe executor** → ~90%+ token reductie (vereist extra hardware/cloud)
+
+Dit document analyseert de haalbaarheid en presenteert realistische implementatie-opties.
 
 ---
 
@@ -241,51 +247,147 @@ const comparison = currentUsage / avg;
 
 ## 4. Implementatie Overwegingen
 
-### 4.1 Vereisten
+### 4.1 Homey Pro Hardware Constraints ⚠️
+
+**KRITISCHE BEPERKING**: Code execution op de Homey Pro zelf is **waarschijnlijk niet haalbaar**.
+
+#### Hardware Specs (Homey Pro 2023)
+```
+CPU:     1.8 GHz Quad Core ARMv8 (Raspberry Pi Compute Module 4)
+RAM:     2 GB LPDDR4
+Storage: 8 GB eMMC
+OS:      Linux-based (Homey OS)
+Runtime: Node.js (shared met alle Homey apps)
+```
+
+#### Waarom Code Execution Problematisch Is
+
+**1. Beperkte RAM (2 GB totaal)**
+- Homey OS baseline: ~300-500 MB
+- Andere apps draaien tegelijkertijd (10-50+ apps is normaal)
+- Elke app: 20-100 MB gemiddeld
+- **Beschikbaar voor onze app: ~100-300 MB realistisch**
+
+Node.js sandboxing overhead:
+- `isolated-vm`: ~30-50 MB per isolate + code memory
+- Node.js base runtime: ~30-50 MB
+- Code execution workspace: variabel (10-100+ MB)
+
+**Risico**: Bij complexe queries kan memory-gebruik pieken → OOM kills → Homey crash
+
+**2. Shared Device - Stabiliteit Cruciaal**
+- Homey beheert kritieke home automation (verlichting, verwarming, beveiliging)
+- Andere apps mogen niet beïnvloed worden
+- Een crash van onze app moet geen system-wide impact hebben
+- **Vereiste**: Strikte resource isolation (moeilijk op beperkte hardware)
+
+**3. ARM Architecture Beperkingen**
+- `isolated-vm` native modules moeten gecompileerd voor ARM
+- Beperkte documentatie over ARM performance
+- Potentieel hogere overhead dan x86_64
+
+**4. Security Risico**
+- Onvertrouwde code uitvoeren op device dat je hele huis beheert = **hoog risico**
+- Sandbox escapes (vm2 had meerdere CVEs in 2023)
+- Beperkte security auditing mogelijkheden op embedded platform
+
+#### Alternatief: Hybrid Architectuur
+
+**Voorstel**: Code execution **offloaden** naar externe service
+
+```
+┌──────────────┐
+│   Claude     │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐     ┌─────────────────┐
+│ Homey Pro    │────▶│  Cloud Service  │
+│              │     │  (Code Executor)│
+│ - Tool calls │◀────│  - Sandboxed VM │
+│ - Data fetch │     │  - Resource limits│
+└──────────────┘     └─────────────────┘
+```
+
+**Voordelen**:
+- ✅ Homey stabiliteit gegarandeerd
+- ✅ Schaalbare resources (cloud kan 4GB+ RAM allocaten)
+- ✅ Betere security isolation
+- ✅ Makkelijker te monitoren en updaten
+
+**Nadelen**:
+- ❌ Extra latency (50-200ms roundtrip)
+- ❌ Vereist internet connectie
+- ❌ Privacy concern: code/data gaat naar cloud
+- ❌ Extra kosten (hosting)
+
+**Privacy-vriendelijke variant: Local Server**
+```
+┌──────────────┐     ┌─────────────────┐
+│ Homey Pro    │────▶│  Raspberry Pi   │
+│              │     │  (on LAN)       │
+│              │◀────│  - Docker       │
+│              │     │  - isolated-vm  │
+└──────────────┘     └─────────────────┘
+```
+
+Users kunnen een lightweight server op hun LAN draaien (RPi, NAS, oude laptop):
+- ✅ Privacy: alles blijft lokaal
+- ✅ Homey stabiliteit behouden
+- ✅ Voldoende resources (4-8GB RAM typisch)
+- ⚠️ Vereist extra hardware setup
+
+---
+
+### 4.2 Vereisten (voor externe executor)
 Een code execution pattern vereist:
 
 1. **Secure execution environment**
-   - Sandboxing (Node.js VM, Docker container, etc.)
+   - Sandboxing (Docker container aanbevolen voor externe service)
    - Resource limits (CPU, memory, timeout)
    - No access to sensitive host system resources
+   - Network isolation (alleen toegang tot Homey API endpoints)
 
 2. **Tool-to-code mapping**
    - Elke tool wordt een importeerbaar module
    - Consistente API (async/await pattern)
    - Type definitions (TypeScript)
+   - API client voor communicatie met Homey
 
 3. **Monitoring & logging**
    - Execution time tracking
    - Error capturing
    - Security violation detection
+   - Resource usage metrics
 
-### 4.2 Architectuur Voorstel
+### 4.3 Architectuur Voorstel (Externe Executor)
 ```
 ┌──────────────────┐
 │   Claude Agent   │
 └────────┬─────────┘
          │
          ▼
-┌──────────────────┐
-│  MCP Server      │
-│  - search_tools  │ ← Nieuwe functie
-│  - execute_code  │ ← Nieuwe functie
-└────────┬─────────┘
-         │
+┌──────────────────┐          ┌──────────────────┐
+│  Homey MCP       │─────────▶│  Code Executor   │
+│  Server          │          │  Service         │
+│  - search_tools  │          │  (Docker/RPi)    │
+│  - delegate_exec │◀─────────│  - isolated-vm   │
+└────────┬─────────┘          │  - Tool modules  │
+         │                    └──────────────────┘
          ▼
 ┌──────────────────┐
-│ Code Executor    │
-│ (Sandboxed VM)   │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Tool Modules    │
-│  ./homey/*.ts    │
+│  Homey API       │
+│  (local calls)   │
 └──────────────────┘
 ```
 
-### 4.3 Migratiepad
+**Flow**:
+1. Claude roept `execute_code` tool aan via Homey MCP
+2. Homey MCP delegeert naar externe executor (LAN of cloud)
+3. Executor voert code uit met toegang tot Homey API calls
+4. Gefilterde resultaten gaan terug naar Claude
+
+### 4.4 Migratiepad
 
 #### Fase 1: Behoud huidige systeem als fallback
 - Beide patterns ondersteunen
@@ -358,10 +460,12 @@ export async function getHomeStructure(
 - Risk: Low (fallback naar huidige system)
 
 ### 5.2 High Impact, High Effort
-⚠️ **Code Execution Engine**
+⚠️ **Code Execution Engine (EXTERNE SERVICE VEREIST)**
 - Impact: -90% tokens bij data-intensive queries
-- Effort: ~1-2 weken (sandboxing, security, testing)
-- Risk: Medium (security, backwards compatibility)
+- Effort: ~2-4 weken (externe service, API design, sandboxing, testing)
+- Risk: HIGH (hardware constraints Homey, security, complexity)
+- **Note**: Kan NIET op Homey Pro zelf draaien (zie sectie 4.1)
+- Vereist externe executor service (cloud of local server)
 
 ### 5.3 Medium Impact, Low Effort
 ✅ **Server-side Filtering Helpers**
@@ -453,13 +557,50 @@ getInsightData(
 
 De huidige Homey MCP server is **functioneel en stabiel**, maar niet geoptimaliseerd voor de **efficiëntie die moderne LLMs mogelijk maken**.
 
-**Key Takeaway**: Door een code execution pattern toe te voegen, kunnen we:
-- Token-gebruik met **90%+ reduceren** voor data-intensive workflows
-- Snelheid verhogen door minder round-trips
-- Privacy verbeteren (data blijft server-side)
-- Meer geavanceerde use cases ondersteunen
+### Realistische Verwachtingen
 
-**Advies**: Start met **low-hanging fruit** (progressive disclosure, filters) en evalueer daarna de ROI van een volledige code executor implementatie.
+**Hardware Realiteit**: De Homey Pro (2 GB RAM, shared met 10-50+ apps) kan **geen volledige code execution pattern** ondersteunen zoals Anthropic beschrijft. Een sandbox environment (isolated-vm) zou:
+- 30-50+ MB RAM permanent claimen
+- Risico op OOM kills bij complexe queries
+- Stabiliteit van kritieke home automation bedreigen
+
+### Hybride Aanpak - Beste van Beide Werelden
+
+**Wat WEL kan (op Homey)**:
+- ✅ Progressive disclosure (`search_tools`)
+- ✅ Server-side filtering (parameters aan tools toevoegen)
+- ✅ Betere tool descriptions
+- → **~50-70% token reductie zonder hardware wijzigingen**
+
+**Wat ALLEEN met externe service kan**:
+- 🔌 Volledige code execution (90%+ token reductie)
+- 🔌 State persistence
+- 🔌 Agent skill library
+- → **Vereist externe executor (cloud of local RPi/NAS)**
+
+### Aanbevolen Strategie
+
+**Fase 1 (Direct implementeerbaar)**:
+Focus op optimalisaties die WEL op Homey kunnen:
+1. Progressive disclosure voor tool discovery
+2. Filter parameters aan data-heavy tools
+3. Betere structured output formats
+
+**Impact**: **50-70% token reductie** zonder extra hardware
+
+**Fase 2 (Optioneel - voor power users)**:
+Bouw externe executor service als opt-in feature:
+- Docker image voor gebruikers met NAS/server
+- Cloud-hosted variant (betaald/subscription)
+- Volledig optioneel - fallback naar directe calls
+
+**Impact**: **90%+ token reductie** voor users die externe service draaien
+
+### Key Takeaway
+
+**Pragmatisch advies**: Start met **low-hanging fruit** (progressive disclosure, filters) die **50-70% token reductie** opleveren zonder extra hardware. Evalueer daarna of de **extra 20-30%** van code execution de **complexiteit van een externe service** waard is voor jouw userbase.
+
+Voor de meeste Homey users is **Phase 1 voldoende** - alleen voor power users met zeer data-intensive queries (bijv. maandelijkse energie analyses) is een externe executor de moeite waard.
 
 ---
 
