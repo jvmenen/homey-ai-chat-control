@@ -114,19 +114,15 @@ export const TOOL_METADATA: Record<string, ToolMetadata> = {
   },
 
   // ===== FLOWS TOOLS =====
-  trigger_any_flow: {
-    name: 'trigger_any_flow',
-    category: 'flows',
-    shortDescription: 'Trigger Homey flows by command name with parameters',
-    tags: ['flows', 'trigger', 'automation', 'execute'],
-  },
-
   refresh_homey_flows: {
     name: 'refresh_homey_flows',
     category: 'flows',
     shortDescription: 'Refresh the list of available flows and flow-based tools',
     tags: ['flows', 'refresh', 'reload', 'update'],
   },
+
+  // NOTE: trigger_any_flow is NOT in metadata - it's internal only
+  // Used by mcp-server-manager for flow-based tools delegation
 };
 
 /**

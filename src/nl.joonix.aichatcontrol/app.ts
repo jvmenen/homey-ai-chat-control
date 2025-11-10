@@ -24,6 +24,8 @@ import { GetFlowOverviewTool } from './lib/tools/get-flow-overview-tool';
 import { GetInstalledAppsTool } from './lib/tools/get-installed-apps-tool';
 import { GetInsightLogsTool } from './lib/tools/get-insight-logs-tool';
 import { GetInsightDataTool } from './lib/tools/get-insight-data-tool';
+import { SearchToolsTool } from './lib/tools/search-tools-tool';
+import { UseToolTool } from './lib/tools/use-tool-tool';
 import { normalizeCommandName } from './lib/parsers/flow-parser';
 import { getLocalIpAddress } from './lib/utils/network';
 
@@ -96,23 +98,36 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.log('Initializing Tool Registry...');
       this.toolRegistry = new ToolRegistry();
 
-      // Register all tools
-      this.toolRegistry.register(new RefreshFlowsTool(this.homey, this.flowManager, this.toolStateManager));
-      this.toolRegistry.register(new TriggerAnyFlowTool(this.homey, this.flowManager));
+      // Register meta tools (always in tools/list for progressive disclosure)
+      this.toolRegistry.registerMeta(new SearchToolsTool());
+      this.toolRegistry.registerMeta(new UseToolTool(this.homey, this.toolRegistry));
+
+      // Register core tools (in tools/list: get_home_structure, get_states, get_flow_overview)
       this.toolRegistry.register(new HomeStructureTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new GetStatesTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new GetFlowOverviewTool(this.homey, this.flowManager));
-      this.toolRegistry.register(new GetInstalledAppsTool(this.homey));
+
+      // Register discovered tools (hidden from tools/list, accessible via search_tools + use_tool)
+      // Control tools
       this.toolRegistry.register(new ControlDeviceTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new ToggleDeviceTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new SetLightTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new SetThermostatTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new ControlZoneLightsTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new ControlZoneCapabilityTool(this.homey, this.zoneDeviceManager));
+      // Insights tools
       this.toolRegistry.register(new GetInsightLogsTool(this.insightsManager));
       this.toolRegistry.register(new GetInsightDataTool(this.insightsManager));
+      // Apps tools
+      this.toolRegistry.register(new GetInstalledAppsTool(this.homey));
+      // Flows tools
+      this.toolRegistry.register(new RefreshFlowsTool(this.homey, this.flowManager, this.toolStateManager));
 
-      this.log(`Tool Registry initialized with ${this.toolRegistry.count()} tools`);
+      // Register internal tools (NOT in metadata, NOT in tools/list - used internally only)
+      // trigger_any_flow is used by mcp-server-manager for flow-based tool delegation
+      this.toolRegistry.register(new TriggerAnyFlowTool(this.homey, this.flowManager));
+
+      this.log(`Tool Registry initialized with ${this.toolRegistry.count()} tools (5 visible, ${this.toolRegistry.count() - 5} discovered/internal)`);
 
       // Initialize MCP Server Manager with FlowManager for flow-based tools
       this.log('Initializing MCP Server Manager...');
