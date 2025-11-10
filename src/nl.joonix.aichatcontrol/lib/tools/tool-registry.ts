@@ -1,10 +1,16 @@
 /**
  * Tool Registry - Central management for all MCP tools
+ *
+ * Supports progressive disclosure pattern:
+ * - Core tools: Always in tools/list (frequently used, foundational)
+ * - Meta tools: Discovery tools (search_tools, use_tool)
+ * - Discovered tools: Hidden from tools/list, accessible via meta tools
  */
 
 import { MCPTool, MCPToolCallResult } from '../types';
 import { MCPToolHandler } from './base-tool';
 import { ToolNotFoundError, HomeyMCPError } from '../utils/errors';
+import { isCoreToolMetadata } from './tool-metadata';
 
 /**
  * Registry for managing MCP tool handlers
@@ -12,6 +18,7 @@ import { ToolNotFoundError, HomeyMCPError } from '../utils/errors';
  */
 export class ToolRegistry {
   private tools: Map<string, MCPToolHandler> = new Map();
+  private metaTools: Set<string> = new Set(); // search_tools, use_tool
 
   /**
    * Register a tool handler
@@ -26,10 +33,36 @@ export class ToolRegistry {
   }
 
   /**
-   * Get all registered tool definitions
-   * Used for MCP tools/list response
+   * Register a meta tool (discovery tools like search_tools, use_tool)
+   * Meta tools are always included in tools/list
+   */
+  registerMeta(tool: MCPToolHandler): void {
+    this.register(tool);
+    this.metaTools.add(tool.name);
+  }
+
+  /**
+   * Get tool definitions for MCP tools/list response
+   * Returns only core tools + meta tools (progressive disclosure)
    */
   getAllDefinitions(): MCPTool[] {
+    const definitions: MCPTool[] = [];
+
+    for (const [name, tool] of this.tools.entries()) {
+      // Include if it's a core tool (based on metadata) or a meta tool
+      if (isCoreToolMetadata(name) || this.metaTools.has(name)) {
+        definitions.push(tool.getDefinition());
+      }
+    }
+
+    return definitions;
+  }
+
+  /**
+   * Get ALL tool definitions including discovered/hidden tools
+   * Used for internal purposes, not for tools/list
+   */
+  getAllToolsIncludingHidden(): MCPTool[] {
     return Array.from(this.tools.values()).map((tool) => tool.getDefinition());
   }
 
@@ -84,5 +117,15 @@ export class ToolRegistry {
    */
   getToolNames(): string[] {
     return Array.from(this.tools.keys());
+  }
+
+  /**
+   * Get full tool definition by name (for detailed search results)
+   * @param name - Tool name to get definition for
+   * @returns Tool definition or undefined if not found
+   */
+  getToolDefinition(name: string): MCPTool | undefined {
+    const tool = this.tools.get(name);
+    return tool ? tool.getDefinition() : undefined;
   }
 }

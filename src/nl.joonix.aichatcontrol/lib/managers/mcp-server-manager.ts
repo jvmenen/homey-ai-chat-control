@@ -109,24 +109,14 @@ export class MCPServerManager {
   private async handleToolsList(id: string | number): Promise<MCPResponse> {
     const registryTools = this.toolRegistry.getAllDefinitions();
 
-    // Also get flow-based tools if FlowManager is available
-    let flowTools: MCPTool[] = [];
-    if (this.flowManager) {
-      const allFlowTools = await this.flowManager.getToolsFromFlows();
+    // Progressive disclosure: Flow-based tools are NOT included in tools/list
+    // They are discovered via search_tools and executed via use_tool
+    // This prevents overwhelming Claude with too many tools upfront
 
-      // Filter out flow-based tools that conflict with registry tools
-      // Registry tools take precedence (they have better descriptions and logic)
-      const registryToolNames = new Set(registryTools.map(t => t.name));
-      flowTools = allFlowTools.filter(flowTool => {
-        if (registryToolNames.has(flowTool.name)) {
-          this.homey.log(`⚠️  Skipping flow-based tool '${flowTool.name}' - conflicts with built-in tool`);
-          return false;
-        }
-        return true;
-      });
-    }
+    // Note: Flow-based tools are still registered and can be executed
+    // via use_tool or direct tool calls, they're just hidden from initial tools/list
 
-    const tools = [...registryTools, ...flowTools];
+    const tools = [...registryTools];
     return this.createSuccess(id, { tools });
   }
 
