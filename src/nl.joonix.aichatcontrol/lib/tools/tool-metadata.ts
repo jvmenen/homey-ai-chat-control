@@ -34,13 +34,6 @@ export const TOOL_METADATA: Record<string, ToolMetadata> = {
     tags: ['states', 'values', 'status', 'current', 'capabilities'],
   },
 
-  trigger_any_flow: {
-    name: 'trigger_any_flow',
-    category: 'core',
-    shortDescription: 'Trigger Homey flows by command name with parameters',
-    tags: ['flows', 'trigger', 'automation', 'execute'],
-  },
-
   get_flow_overview: {
     name: 'get_flow_overview',
     category: 'core',
@@ -121,6 +114,13 @@ export const TOOL_METADATA: Record<string, ToolMetadata> = {
   },
 
   // ===== FLOWS TOOLS =====
+  trigger_any_flow: {
+    name: 'trigger_any_flow',
+    category: 'flows',
+    shortDescription: 'Trigger Homey flows by command name with parameters',
+    tags: ['flows', 'trigger', 'automation', 'execute'],
+  },
+
   refresh_homey_flows: {
     name: 'refresh_homey_flows',
     category: 'flows',
