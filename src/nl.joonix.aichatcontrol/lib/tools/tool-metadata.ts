@@ -143,6 +143,14 @@ export const TOOL_METADATA: Record<string, ToolMetadata> = {
     tags: ['moods', 'scenes', 'search', 'device', 'migration', 'find'],
   },
 
+  // ===== LOGIC VARIABLE TOOLS =====
+  get_logic_variables: {
+    name: 'get_logic_variables',
+    category: 'query',
+    shortDescription: 'Get all Homey Logic variables with current values',
+    tags: ['logic', 'variables', 'thresholds', 'flags', 'counters', 'values'],
+  },
+
   // NOTE: trigger_any_flow is NOT in metadata - it's internal only
   // Used by mcp-server-manager for flow-based tools delegation
 };

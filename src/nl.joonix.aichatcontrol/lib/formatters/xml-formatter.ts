@@ -4,6 +4,7 @@
 
 import { FlowOverviewData } from '../interfaces';
 import type { InsightLog, InsightLogWithData } from '../managers/insights-manager.js';
+import type { LogicVariable } from '../types';
 
 /**
  * Device states data (from ZoneDeviceManager.getStates())
@@ -694,6 +695,53 @@ export class XMLFormatter {
 - Each mood shows the device's configured state for that scene
 - Useful for device migrations or cleanup operations
 - If removing this device, you may need to update these moods first
+`;
+  }
+
+  /**
+   * Format logic variables as XML
+   * @param variables - Logic variables from Homey API
+   * @param filters - Optional filter info for summary
+   * @returns Formatted XML string
+   */
+  static formatLogicVariables(
+    variables: LogicVariable[],
+    filters?: { filterType?: string; searchName?: string }
+  ): string {
+    let message = `Logic variables in XML format for easy parsing:\n\n`;
+    message += `SUMMARY: ${variables.length} variable(s)`;
+    if (filters?.filterType) message += ` (type: ${filters.filterType})`;
+    if (filters?.searchName) message += ` (search: "${filters.searchName}")`;
+    message += `\n\n`;
+
+    message += `<logic-variables count="${variables.length}">\n`;
+
+    if (variables.length === 0) {
+      message += `  <!-- No logic variables found matching the filters -->\n`;
+    } else {
+      for (const variable of variables) {
+        message += `  <variable id="${this.escapeXml(variable.id)}"`;
+        message += ` name="${this.escapeXml(variable.name)}"`;
+        message += ` type="${variable.type}"`;
+        message += ` value="${this.escapeXml(String(variable.value))}"`;
+        message += ` />\n`;
+      }
+    }
+
+    message += `</logic-variables>\n\n`;
+    message += this.getLogicVariablesInstructions();
+
+    return message;
+  }
+
+  /**
+   * Get instructions for logic variables XML
+   */
+  private static getLogicVariablesInstructions(): string {
+    return `INSTRUCTIONS:
+- Logic variables are used in Homey flows for dynamic automation behavior
+- Types: "number" (thresholds, counters), "boolean" (flags), "string" (text values)
+- Variable values can be referenced in flow conditions and actions
 `;
   }
 }

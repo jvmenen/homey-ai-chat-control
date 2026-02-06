@@ -29,19 +29,21 @@ export class HomeStructureTool extends BaseTool {
       name: this.name,
       description: `MOST EFFICIENT - Use this FIRST in every conversation!
 
-PURPOSE: Get complete static home structure (zones + all devices with their capabilities) in a single API call.
+PURPOSE: Get complete static home structure (zones, devices, and moods) in a single API call.
 
 WHEN TO USE:
 - At the START of every conversation to understand the home layout
 - When you need to know what zones exist and what devices are in them
 - When you need to see what capabilities each device has
+- When you need to know what moods (light scenes) are available per zone
 
 WHAT YOU GET:
 - All zones with hierarchy (parent-child relationships)
 - All devices with: name, ID, zone, class/type, capabilities list
+- All moods (light scenes) with: name, ID, zone, preset, device count
 - No current values (use get_states for that)
 
-EFFICIENCY: Gets all zones and devices in a single efficient call. Call this ONCE and keep the structure in your context for the entire conversation.
+EFFICIENCY: Gets all zones, devices, and moods in a single efficient call. Call this ONCE and keep the structure in your context for the entire conversation.
 
 BEST PRACTICE: Call get_home_structure first, then use get_states to get current values when needed.`,
       inputSchema: {

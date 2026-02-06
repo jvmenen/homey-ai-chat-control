@@ -28,6 +28,7 @@ export class HomeyAPIManager {
    * - homey.flow: Access to flows
    * - homey.mood: Access to moods (light scenes)
    * - homey.app: Access to installed apps
+   * - homey.logic: Access to logic variables
    */
   async init(): Promise<void> {
     if (this.initialized) {
@@ -53,6 +54,8 @@ export class HomeyAPIManager {
           'homey.moods',
           'homey:manager:moods',
           'homey.app',
+          'homey.logic',
+          'homey.logic.readonly',
         ],
       });
 
@@ -65,6 +68,8 @@ export class HomeyAPIManager {
         'homey.moods',
         'homey:manager:moods',
         'homey.app',
+        'homey.logic',
+        'homey.logic.readonly',
       ]);
     } catch (error) {
       this.logger.error('Failed to initialize Homey API:', error);

@@ -30,6 +30,7 @@ import { UseToolTool } from './lib/tools/use-tool-tool';
 import { GetMoodDetailsTool } from './lib/tools/get-mood-details-tool';
 import { SetMoodTool } from './lib/tools/set-mood-tool';
 import { FindDeviceInMoodsTool } from './lib/tools/find-device-in-moods-tool';
+import { GetLogicVariablesTool } from './lib/tools/get-logic-variables-tool';
 import { normalizeCommandName } from './lib/parsers/flow-parser';
 import { getLocalIpAddress } from './lib/utils/network';
 
@@ -139,6 +140,8 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.toolRegistry.register(new GetMoodDetailsTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new SetMoodTool(this.homey, this.zoneDeviceManager));
       this.toolRegistry.register(new FindDeviceInMoodsTool(this.homey, this.zoneDeviceManager));
+      // Logic variable tools
+      this.toolRegistry.register(new GetLogicVariablesTool(this.homey, homeyApi));
 
       // Register internal tools (NOT in metadata, NOT in tools/list - used internally only)
       // trigger_any_flow is used by mcp-server-manager for flow-based tool delegation

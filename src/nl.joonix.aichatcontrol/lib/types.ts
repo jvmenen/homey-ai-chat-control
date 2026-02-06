@@ -220,6 +220,26 @@ export interface ZoneTemperatureResult {
 }
 
 /**
+ * Logic variable type
+ */
+export type LogicVariableType = 'number' | 'boolean' | 'string';
+
+/**
+ * Homey Logic Variable representation
+ * Used in flows for dynamic automation behavior (thresholds, flags, counters, etc.)
+ */
+export interface LogicVariable {
+  /** Unique variable identifier */
+  id: string;
+  /** Variable name */
+  name: string;
+  /** Variable type */
+  type: LogicVariableType;
+  /** Current value */
+  value: number | boolean | string;
+}
+
+/**
  * Homey Mood representation
  * A mood is a scene/preset that controls multiple devices at once
  */
