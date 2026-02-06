@@ -3,6 +3,7 @@
 import Homey from 'homey';
 import express from 'express';
 import { Server } from 'http';
+import { HomeyAPIManager } from './lib/managers/homey-api-manager';
 import { FlowManager } from './lib/managers/flow-manager';
 import { ZoneDeviceManager } from './lib/managers/zone-device-manager';
 import { InsightsManager } from './lib/managers/insights-manager';
@@ -26,11 +27,15 @@ import { GetInsightLogsTool } from './lib/tools/get-insight-logs-tool';
 import { GetInsightDataTool } from './lib/tools/get-insight-data-tool';
 import { SearchToolsTool } from './lib/tools/search-tools-tool';
 import { UseToolTool } from './lib/tools/use-tool-tool';
+import { GetMoodDetailsTool } from './lib/tools/get-mood-details-tool';
+import { SetMoodTool } from './lib/tools/set-mood-tool';
+import { FindDeviceInMoodsTool } from './lib/tools/find-device-in-moods-tool';
 import { normalizeCommandName } from './lib/parsers/flow-parser';
 import { getLocalIpAddress } from './lib/utils/network';
 
 module.exports = class HomeyMCPApp extends Homey.App {
   private httpServer!: Server;
+  private homeyApiManager!: HomeyAPIManager;
   private flowManager!: FlowManager;
   private zoneDeviceManager!: ZoneDeviceManager;
   private insightsManager!: InsightsManager;
@@ -69,23 +74,31 @@ module.exports = class HomeyMCPApp extends Homey.App {
 
       this.log('Flow trigger card registered with run listener');
 
-      // Initialize Flow Manager with trigger card FIRST
+      // Initialize Homey API Manager FIRST (provides shared API connection)
+      this.log('Initializing Homey API Manager...');
+      this.homeyApiManager = new HomeyAPIManager(this.homey);
+      await this.homeyApiManager.init();
+      this.log('Homey API Manager initialized');
+
+      // Get the shared API instance
+      const homeyApi = this.homeyApiManager.getApi();
+
+      // Initialize Flow Manager with shared API
       this.log('Initializing Flow Manager...');
-      this.flowManager = new FlowManager(this.homey, mcpCommandTrigger);
-      await this.flowManager.init();
+      this.flowManager = new FlowManager(this.homey, homeyApi, mcpCommandTrigger);
       this.log('Flow Manager initialized');
 
-      // Initialize Zone & Device Manager
+      // Initialize Zone & Device Manager with shared API
       this.log('Initializing Zone & Device Manager...');
-      this.zoneDeviceManager = new ZoneDeviceManager(this.homey);
-      await this.zoneDeviceManager.init();
+      this.zoneDeviceManager = new ZoneDeviceManager(this.homey, homeyApi);
       this.log('Zone & Device Manager initialized');
 
       // Initialize Insights Manager
       this.log('Initializing Insights Manager...');
       this.insightsManager = new InsightsManager(
         this.zoneDeviceManager.getHomeyApi(),
-        this.zoneDeviceManager
+        this.zoneDeviceManager,
+        this.homey
       );
       this.log('Insights Manager initialized');
 
@@ -119,9 +132,13 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.toolRegistry.register(new GetInsightLogsTool(this.insightsManager));
       this.toolRegistry.register(new GetInsightDataTool(this.insightsManager));
       // Apps tools
-      this.toolRegistry.register(new GetInstalledAppsTool(this.homey));
+      this.toolRegistry.register(new GetInstalledAppsTool(this.homey, homeyApi));
       // Flows tools
       this.toolRegistry.register(new RefreshFlowsTool(this.homey, this.flowManager, this.toolStateManager));
+      // Mood tools
+      this.toolRegistry.register(new GetMoodDetailsTool(this.homey, this.zoneDeviceManager));
+      this.toolRegistry.register(new SetMoodTool(this.homey, this.zoneDeviceManager));
+      this.toolRegistry.register(new FindDeviceInMoodsTool(this.homey, this.zoneDeviceManager));
 
       // Register internal tools (NOT in metadata, NOT in tools/list - used internally only)
       // trigger_any_flow is used by mcp-server-manager for flow-based tool delegation
@@ -200,13 +217,23 @@ module.exports = class HomeyMCPApp extends Homey.App {
   async onUninit() {
     this.log('HomeyMCP Server shutting down...');
 
-    // Clean up Zone & Device Manager first to close Homey API connection
+    // Clean up Zone & Device Manager
     if (this.zoneDeviceManager) {
       try {
         await this.zoneDeviceManager.destroy();
         this.log('Zone & Device Manager cleaned up');
       } catch (error) {
         this.error('Error cleaning up Zone & Device Manager:', error);
+      }
+    }
+
+    // Clean up Homey API Manager (closes shared API connection)
+    if (this.homeyApiManager) {
+      try {
+        await this.homeyApiManager.destroy();
+        this.log('Homey API Manager cleaned up');
+      } catch (error) {
+        this.error('Error cleaning up Homey API Manager:', error);
       }
     }
 

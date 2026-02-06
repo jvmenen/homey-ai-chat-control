@@ -13,6 +13,7 @@ import {
   FlowCardInfo,
   FlowOverviewOptions,
 } from '../interfaces';
+import { Logger } from '../utils/logger';
 
 // FlowCardTrigger doesn't export properly, use any for now
 type FlowCardTrigger = any;
@@ -40,43 +41,24 @@ interface HomeyAPIFlow {
 
 export class FlowManager implements IFlowManager {
   private homey: HomeyInstance;
-  private homeyApi!: any; // HomeyAPIV3Local type doesn't include .flow property
-  private initialized: boolean = false;
+  private homeyApi: any; // HomeyAPIV3Local type doesn't include .flow property
   private triggerCard: FlowCardTrigger;
   private availableCommands: Set<string> = new Set();
   // Cache parameter order per command for correct token mapping
   private commandParameterOrder: Map<string, string[]> = new Map();
+  private logger: Logger;
 
-  constructor(homey: HomeyInstance, triggerCard: FlowCardTrigger) {
+  constructor(homey: HomeyInstance, homeyApi: any, triggerCard: FlowCardTrigger) {
     this.homey = homey;
+    this.homeyApi = homeyApi;
     this.triggerCard = triggerCard;
-  }
-
-  /**
-   * Initialize Homey API connection
-   */
-  async init(): Promise<void> {
-    if (this.initialized) {
-      return;
-    }
-
-    try {
-      const { HomeyAPI } = require('homey-api');
-      this.homeyApi = await HomeyAPI.createAppAPI({ homey: this.homey });
-      this.initialized = true;
-      this.homey.log('FlowManager: Homey API initialized');
-    } catch (error) {
-      this.homey.error('FlowManager: Failed to initialize Homey API:', error);
-      throw error;
-    }
+    this.logger = new Logger(homey, 'FlowManager');
   }
 
   /**
    * Get all flows that start with 'mcp_' prefix
    */
   async getMCPFlows(): Promise<HomeyFlow[]> {
-    await this.init();
-
     try {
       const allFlows = await this.homeyApi.flow.getFlows();
 
@@ -85,10 +67,10 @@ export class FlowManager implements IFlowManager {
         flow.name && flow.name.toLowerCase().startsWith('mcp_')
       ) as HomeyFlow[];
 
-      this.homey.log(`FlowManager: Found ${mcpFlows.length} MCP flows`);
+      this.logger.log(`Found ${mcpFlows.length} MCP flows`);
       return mcpFlows;
     } catch (error) {
-      this.homey.error('FlowManager: Failed to get flows:', error);
+      this.logger.error('Failed to get flows:', error);
       return [];
     }
   }
@@ -113,10 +95,8 @@ export class FlowManager implements IFlowManager {
    * Discover flows that use our MCP trigger card
    */
   async discoverMCPFlows(): Promise<Array<{ flowId: string; flowName: string; command: string; description?: string; parameters?: string }>> {
-    await this.init();
-
     try {
-      this.homey.log('Discovering MCP flows...');
+      this.logger.log('Discovering MCP flows...');
 
       // Get both regular flows AND advanced flows
       const regularFlows = await this.homeyApi.flow.getFlows();
@@ -149,11 +129,11 @@ export class FlowManager implements IFlowManager {
         }
       }
 
-      this.homey.log(`Found ${mcpFlows.length} MCP flow(s) out of ${totalFlowCount} total flows`);
+      this.logger.log(`Found ${mcpFlows.length} MCP flow(s) out of ${totalFlowCount} total flows`);
 
       return mcpFlows;
     } catch (error) {
-      this.homey.error('FlowManager: Error discovering MCP flows:', error);
+      this.logger.error('Error discovering MCP flows:', error);
       return [];
     }
   }
@@ -206,13 +186,13 @@ export class FlowManager implements IFlowManager {
           if (rangeMatch) {
             propSchema.minimum = parseFloat(rangeMatch[1]);
             propSchema.maximum = parseFloat(rangeMatch[2]);
-            this.homey.log(`   📝 Number range: ${propSchema.minimum}-${propSchema.maximum}`);
+            this.logger.log(`   📝 Number range: ${propSchema.minimum}-${propSchema.maximum}`);
           }
         } else if (normalizedType === 'string') {
           // Parse enum: "on|off|auto"
           const enumValues = validation.split('|').map(v => v.trim());
           propSchema.enum = enumValues;
-          this.homey.log(`   📝 String enum: ${enumValues.join(', ')}`);
+          this.logger.log(`   📝 String enum: ${enumValues.join(', ')}`);
         }
       }
 
@@ -225,7 +205,7 @@ export class FlowManager implements IFlowManager {
 
       const optionalMarker = isOptional ? ' (optional)' : ' (required)';
       const validationInfo = validation ? ` [${validation}]` : '';
-      this.homey.log(`   📝 Parsed param: ${paramName} (${paramType}${validationInfo})${optionalMarker} - ${paramDescription}`);
+      this.logger.log(`   📝 Parsed param: ${paramName} (${paramType}${validationInfo})${optionalMarker} - ${paramDescription}`);
     }
 
     return { properties, required, parameterNames };
@@ -244,7 +224,7 @@ export class FlowManager implements IFlowManager {
       // Cache parameter order for this command (for correct token mapping later)
       if (parameterNames.length > 0) {
         this.commandParameterOrder.set(flow.command, parameterNames);
-        this.homey.log(`📋 Cached parameter order for "${flow.command}": [${parameterNames.join(', ')}]`);
+        this.logger.log(`📋 Cached parameter order for "${flow.command}": [${parameterNames.join(', ')}]`);
       }
 
       const hasParams = Object.keys(properties).length > 0;
@@ -322,12 +302,12 @@ export class FlowManager implements IFlowManager {
     parameters?: Record<string, any>
   ): Promise<FlowExecutionResult> {
     try {
-      this.homey.log('========================================');
-      this.homey.log(`FlowManager: Triggering command: "${toolName}"`);
+      this.logger.log('========================================');
+      this.logger.log(`Triggering command: "${toolName}"`);
       if (parameters && Object.keys(parameters).length > 0) {
-        this.homey.log('Parameters:', JSON.stringify(parameters));
+        this.logger.log('Parameters:', JSON.stringify(parameters));
       } else {
-        this.homey.log('Parameters: (none)');
+        this.logger.log('Parameters: (none)');
       }
 
       // Register command for autocomplete
@@ -335,7 +315,7 @@ export class FlowManager implements IFlowManager {
       this.registerCommand(toolName);
 
       if (wasNewCommand) {
-        this.homey.log(`✓ Command "${toolName}" registered for first time (will appear in autocomplete)`);
+        this.logger.log(`✓ Command "${toolName}" registered for first time (will appear in autocomplete)`);
       }
 
       // Map parameters to value1, value2, etc. tokens
@@ -356,23 +336,23 @@ export class FlowManager implements IFlowManager {
 
         if (parameterOrder && parameterOrder.length > 0) {
           // Use the defined order from flow description
-          this.homey.log(`   Using parameter order: [${parameterOrder.join(', ')}]`);
+          this.logger.log(`   Using parameter order: [${parameterOrder.join(', ')}]`);
           parameterOrder.forEach((paramName, index) => {
             if (index < 5 && parameters[paramName] !== undefined) {
               const tokenName = this.getTokenName(index);
               tokens[tokenName] = String(parameters[paramName]);
-              this.homey.log(`   Token mapping: [[${tokenName}]] = "${paramName}" = "${parameters[paramName]}"`);
+              this.logger.log(`   Token mapping: [[${tokenName}]] = "${paramName}" = "${parameters[paramName]}"`);
             }
           });
         } else {
           // Fallback to Object.values order (may be unpredictable)
-          this.homey.log(`   ⚠️  No cached parameter order found, using object key order`);
+          this.logger.log(`   ⚠️  No cached parameter order found, using object key order`);
           const paramValues = Object.values(parameters);
           paramValues.forEach((value, index) => {
             if (index < 5) {
               const tokenName = this.getTokenName(index);
               tokens[tokenName] = String(value);
-              this.homey.log(`   Token mapping: [[${tokenName}]] = "${value}"`);
+              this.logger.log(`   Token mapping: [[${tokenName}]] = "${value}"`);
             }
           });
         }
@@ -382,26 +362,26 @@ export class FlowManager implements IFlowManager {
         command: toolName,
       };
 
-      this.homey.log(`Triggering flow card "ai_tool_call" with command="${toolName}"`);
-      this.homey.log(`State: ${JSON.stringify(state)}`);
-      this.homey.log(`Tokens: ${JSON.stringify(tokens)}`);
-      this.homey.log('Any flows listening for this command will now execute...');
+      this.logger.log(`Triggering flow card "ai_tool_call" with command="${toolName}"`);
+      this.logger.log(`State: ${JSON.stringify(state)}`);
+      this.logger.log(`Tokens: ${JSON.stringify(tokens)}`);
+      this.logger.log('Any flows listening for this command will now execute...');
 
       // Trigger with tokens (for flow usage) and state (for run listener matching)
       await this.triggerCard.trigger(tokens, state);
 
-      this.homey.log(`✓ Flow card triggered successfully for command: "${toolName}"`);
-      this.homey.log('========================================');
+      this.logger.log(`✓ Flow card triggered successfully for command: "${toolName}"`);
+      this.logger.log('========================================');
 
       return {
         success: true,
         message: `Command '${toolName}' triggered successfully`,
       };
     } catch (error) {
-      this.homey.error('========================================');
-      this.homey.error(`✗ FlowManager: Failed to trigger command "${toolName}"`);
-      this.homey.error('Error:', error);
-      this.homey.error('========================================');
+      this.logger.error('========================================');
+      this.logger.error(`Failed to trigger command "${toolName}"`);
+      this.logger.error('Error:', error);
+      this.logger.error('========================================');
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
@@ -414,8 +394,6 @@ export class FlowManager implements IFlowManager {
    * Get flow details by tool name
    */
   async getFlowByToolName(toolName: string): Promise<HomeyFlow | null> {
-    await this.init();
-
     const flowName = this.toolNameToFlow(toolName);
 
     try {
@@ -426,7 +404,7 @@ export class FlowManager implements IFlowManager {
 
       return flow || null;
     } catch (error) {
-      this.homey.error(`FlowManager: Failed to get flow ${flowName}:`, error);
+      this.logger.error(`Failed to get flow ${flowName}:`, error);
       return null;
     }
   }
@@ -451,10 +429,9 @@ export class FlowManager implements IFlowManager {
    */
   async getFlowOverview(options: FlowOverviewOptions = {}): Promise<FlowOverviewData> {
     const { includeDisabled = false, deviceIds, folderPaths, appIds } = options;
-    await this.init();
 
     try {
-      this.homey.log('📋 Getting complete flow overview...');
+      this.logger.log('📋 Getting complete flow overview...');
 
       // Get both regular and advanced flows
       const regularFlows = await this.homeyApi.flow.getFlows();
@@ -462,7 +439,7 @@ export class FlowManager implements IFlowManager {
 
       // Get all flow folders for name/path resolution
       const flowFolders = await this.homeyApi.flow.getFlowFolders();
-      this.homey.log(`   Found ${Object.keys(flowFolders).length} flow folders`);
+      this.logger.log(`   Found ${Object.keys(flowFolders).length} flow folders`);
 
       // Get all devices for app ID lookup
       const devices = await this.homeyApi.devices.getDevices();
@@ -562,7 +539,7 @@ export class FlowManager implements IFlowManager {
         flowItems.push(flowItem);
       }
 
-      this.homey.log(`📋 Flow overview: ${totalCount} flows (${enabledCount} enabled, ${disabledCount} disabled, ${mcpFlowCount} MCP flows)`);
+      this.logger.log(`📋 Flow overview: ${totalCount} flows (${enabledCount} enabled, ${disabledCount} disabled, ${mcpFlowCount} MCP flows)`);
 
       return {
         flows: flowItems,
@@ -576,7 +553,7 @@ export class FlowManager implements IFlowManager {
         },
       };
     } catch (error) {
-      this.homey.error('FlowManager: Error getting flow overview:', error);
+      this.logger.error('Error getting flow overview:', error);
       throw error;
     }
   }

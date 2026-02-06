@@ -13,11 +13,6 @@ import { HomeyFlow, MCPTool, FlowExecutionResult } from '../types';
 
 export interface IFlowManager {
   /**
-   * Initialize the flow manager (setup HomeyAPI connection)
-   */
-  init(): Promise<void>;
-
-  /**
    * Get all flows that start with 'mcp_' prefix
    */
   getMCPFlows(): Promise<HomeyFlow[]>;

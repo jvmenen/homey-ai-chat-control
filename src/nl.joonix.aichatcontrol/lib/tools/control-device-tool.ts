@@ -5,15 +5,18 @@
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
+import { Logger } from '../utils/logger';
 
 export class ControlDeviceTool extends BaseTool {
   readonly name = 'control_device';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
+    this.logger = new Logger(homey, 'ControlDeviceTool');
   }
 
   getDefinition(): MCPTool {
@@ -68,7 +71,7 @@ NOTE: For lights, prefer set_light (handles dim as 0-100). For zone-wide control
       const deviceId = args.deviceId as string;
       const capability = args.capability as string;
       const value = args.value;
-      this.homey.log(`🎛️ Controlling device: ${deviceId} - ${capability} = ${value} (type: ${typeof value})`);
+      this.logger.log(`🎛️ Controlling device: ${deviceId} - ${capability} = ${value} (type: ${typeof value})`);
 
       await this.zoneDeviceManager.setCapabilityValue(deviceId, capability, value);
 
@@ -78,7 +81,7 @@ NOTE: For lights, prefer set_light (handles dim as 0-100). For zone-wide control
         `✅ Device Controlled Successfully\n\nDevice: ${device?.name || deviceId}\nCapability: ${capability}\nNew Value: ${value}`
       );
     } catch (error) {
-      this.homey.error('Error controlling device:', error);
+      this.logger.error('Error controlling device:', error);
       return this.createErrorResponse(error as Error);
     }
   }

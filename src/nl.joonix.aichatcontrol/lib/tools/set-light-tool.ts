@@ -6,15 +6,18 @@ import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { DeviceNotFoundError, CapabilityValueError } from '../utils/errors';
+import { Logger } from '../utils/logger';
 
 export class SetLightTool extends BaseTool {
   readonly name = 'set_light';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
+    this.logger = new Logger(homey, 'SetLightTool');
   }
 
   getDefinition(): MCPTool {
@@ -73,7 +76,7 @@ EXAMPLES:
       const deviceId = args.deviceId as string;
       const state = args.state as 'on' | 'off' | 'toggle';
       const dim = args.dim as number | undefined;
-      this.homey.log(`💡 Setting light: ${deviceId} - ${state} ${dim ? `(dim: ${dim}%)` : ''}`);
+      this.logger.log(`💡 Setting light: ${deviceId} - ${state} ${dim ? `(dim: ${dim}%)` : ''}`);
 
       const device = await this.zoneDeviceManager.getDevice(deviceId);
 
@@ -107,7 +110,7 @@ EXAMPLES:
 
       return this.createSuccessResponse(message);
     } catch (error) {
-      this.homey.error('Error setting light:', error);
+      this.logger.error('Error setting light:', error);
       return this.createErrorResponse(error as Error);
     }
   }

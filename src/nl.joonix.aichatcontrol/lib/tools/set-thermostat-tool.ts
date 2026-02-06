@@ -6,15 +6,18 @@ import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { DeviceNotFoundError, CapabilityNotFoundError } from '../utils/errors';
+import { Logger } from '../utils/logger';
 
 export class SetThermostatTool extends BaseTool {
   readonly name = 'set_thermostat';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
+    this.logger = new Logger(homey, 'SetThermostatTool');
   }
 
   getDefinition(): MCPTool {
@@ -55,7 +58,7 @@ NOTE: This only sets the TARGET temperature, not current temperature (which is r
 
       const deviceId = args.deviceId as string;
       const temperature = args.temperature as number;
-      this.homey.log(`🌡️ Setting thermostat: ${deviceId} - ${temperature}°C`);
+      this.logger.log(`🌡️ Setting thermostat: ${deviceId} - ${temperature}°C`);
 
       const device = await this.zoneDeviceManager.getDevice(deviceId);
 
@@ -73,7 +76,7 @@ NOTE: This only sets the TARGET temperature, not current temperature (which is r
         `🌡️ Thermostat Set\n\nDevice: ${device.name}\nTarget Temperature: ${temperature}°C`
       );
     } catch (error) {
-      this.homey.error('Error setting thermostat:', error);
+      this.logger.error('Error setting thermostat:', error);
       return this.createErrorResponse(error as Error);
     }
   }

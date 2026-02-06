@@ -5,15 +5,18 @@
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
+import { Logger } from '../utils/logger';
 
 export class ControlZoneLightsTool extends BaseTool {
   readonly name = 'control_zone_lights';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
+    this.logger = new Logger(homey, 'ControlZoneLightsTool');
   }
 
   getDefinition(): MCPTool {
@@ -71,7 +74,7 @@ EXAMPLE: action="on", dim=50 → turns on all zone lights at 50%`,
       const zoneId = args.zoneId as string;
       const action = args.action as 'on' | 'off' | 'toggle';
       const dim = args.dim as number | undefined;
-      this.homey.log(`🔦 Controlling zone lights: ${zoneId} - ${action} ${dim ? `(dim: ${dim}%)` : ''}`);
+      this.logger.log(`🔦 Controlling zone lights: ${zoneId} - ${action} ${dim ? `(dim: ${dim}%)` : ''}`);
 
       const result = await this.zoneDeviceManager.setZoneLights(zoneId, action, dim);
       const zone = await this.zoneDeviceManager.getZone(zoneId);
@@ -91,7 +94,7 @@ EXAMPLE: action="on", dim=50 → turns on all zone lights at 50%`,
 
       return this.createSuccessResponse(message);
     } catch (error) {
-      this.homey.error('Error controlling zone lights:', error);
+      this.logger.error('Error controlling zone lights:', error);
       return this.createErrorResponse(error as Error);
     }
   }

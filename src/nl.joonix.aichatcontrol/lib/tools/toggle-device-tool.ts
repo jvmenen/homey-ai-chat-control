@@ -5,15 +5,18 @@
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
+import { Logger } from '../utils/logger';
 
 export class ToggleDeviceTool extends BaseTool {
   readonly name = 'toggle_device';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
+    this.logger = new Logger(homey, 'ToggleDeviceTool');
   }
 
   getDefinition(): MCPTool {
@@ -49,7 +52,7 @@ NOTE: This reads current state first, then sets opposite. For explicit on/off, u
       this.validateRequiredArgs(args, ['deviceId']);
 
       const deviceId = args.deviceId as string;
-      this.homey.log(`🔄 Toggling device: ${deviceId}`);
+      this.logger.log(`🔄 Toggling device: ${deviceId}`);
 
       const newState = await this.zoneDeviceManager.toggleDevice(deviceId);
       const device = await this.zoneDeviceManager.getDevice(deviceId);
@@ -58,7 +61,7 @@ NOTE: This reads current state first, then sets opposite. For explicit on/off, u
         `✅ Device Toggled\n\nDevice: ${device?.name || deviceId}\nNew State: ${newState ? 'ON' : 'OFF'}`
       );
     } catch (error) {
-      this.homey.error('Error toggling device:', error);
+      this.logger.error('Error toggling device:', error);
       return this.createErrorResponse(error as Error);
     }
   }

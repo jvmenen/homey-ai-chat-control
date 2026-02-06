@@ -5,15 +5,18 @@
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
+import { Logger } from '../utils/logger';
 
 export class ControlZoneCapabilityTool extends BaseTool {
   readonly name = 'control_zone_capability';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
+    this.logger = new Logger(homey, 'ControlZoneCapabilityTool');
   }
 
   getDefinition(): MCPTool {
@@ -67,7 +70,7 @@ NOTE: For lights specifically, prefer control_zone_lights (more user-friendly).`
       const zoneId = args.zoneId as string;
       const capability = args.capability as string;
       const value = args.value;
-      this.homey.log(`⚡ Controlling zone capability: ${zoneId} - ${capability} = ${value}`);
+      this.logger.log(`⚡ Controlling zone capability: ${zoneId} - ${capability} = ${value}`);
 
       const result = await this.zoneDeviceManager.setZoneDeviceCapability(zoneId, capability, value);
       const zone = await this.zoneDeviceManager.getZone(zoneId);
@@ -87,7 +90,7 @@ NOTE: For lights specifically, prefer control_zone_lights (more user-friendly).`
 
       return this.createSuccessResponse(message);
     } catch (error) {
-      this.homey.error('Error controlling zone capability:', error);
+      this.logger.error('Error controlling zone capability:', error);
       return this.createErrorResponse(error as Error);
     }
   }

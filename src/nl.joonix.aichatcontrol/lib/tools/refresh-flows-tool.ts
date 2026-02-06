@@ -6,6 +6,7 @@ import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IFlowManager } from '../interfaces';
 import { ToolStateManager } from '../managers/tool-state-manager';
+import { Logger } from '../utils/logger';
 
 /**
  * Tool to manually refresh the list of available MCP flows
@@ -13,6 +14,7 @@ import { ToolStateManager } from '../managers/tool-state-manager';
  */
 export class RefreshFlowsTool extends BaseTool {
   readonly name = 'refresh_homey_flows';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
@@ -20,6 +22,7 @@ export class RefreshFlowsTool extends BaseTool {
     private toolStateManager: ToolStateManager
   ) {
     super();
+    this.logger = new Logger(homey, 'RefreshFlowsTool');
   }
 
   getDefinition(): MCPTool {
@@ -49,7 +52,7 @@ OUTPUT: Shows all discovered flows with their commands and parameters.`,
 
   async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
-      this.homey.log('🔄 Manual flow refresh requested by Claude');
+      this.logger.log('🔄 Manual flow refresh requested by Claude');
 
       // Force re-discovery of flows
       const flowTools = await this.flowManager.getToolsFromFlows();
@@ -103,11 +106,11 @@ OUTPUT: Shows all discovered flows with their commands and parameters.`,
         });
       }
 
-      this.homey.log(`✅ Flow refresh complete: ${toolCount} flows, changed: ${changed}`);
+      this.logger.log(`✅ Flow refresh complete: ${toolCount} flows, changed: ${changed}`);
 
       return this.createSuccessResponse(message);
     } catch (error) {
-      this.homey.error('Error refreshing flows:', error);
+      this.logger.error('Error refreshing flows:', error);
       return this.createErrorResponse(error as Error);
     }
   }

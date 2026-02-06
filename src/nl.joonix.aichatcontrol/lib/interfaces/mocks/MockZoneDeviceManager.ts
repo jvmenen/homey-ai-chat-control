@@ -10,10 +10,6 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
   private mockDevices: HomeyDevice[] = [];
   private capabilityValues: Map<string, unknown> = new Map();
 
-  async init(): Promise<void> {
-    // Mock initialization
-  }
-
   async destroy(): Promise<void> {
     // Mock cleanup
   }
@@ -224,8 +220,9 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
     return null; // Mock has no moods
   }
 
-  // NOTE: activateMood() removed - not supported by Homey App API
-  // Use flow-based activation instead
+  async setMood(moodId: string): Promise<void> {
+    // Mock implementation - no-op
+  }
 
   // Test helpers
   addMockZone(zone: HomeyZone): void {

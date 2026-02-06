@@ -5,6 +5,7 @@
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IFlowManager } from '../interfaces';
+import { Logger } from '../utils/logger';
 
 /**
  * Workaround tool for triggering flows that aren't in the current tool list
@@ -12,12 +13,14 @@ import { IFlowManager } from '../interfaces';
  */
 export class TriggerAnyFlowTool extends BaseTool {
   readonly name = 'trigger_any_flow';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private flowManager: IFlowManager
   ) {
     super();
+    this.logger = new Logger(homey, 'TriggerAnyFlowTool');
   }
 
   getDefinition(): MCPTool {
@@ -71,9 +74,9 @@ NOTE: This is a workaround. Flows triggered this way work immediately, but won't
       const commandName = args.command as string;
       const parameters = (args.parameters as Record<string, unknown>) || {};
 
-      this.homey.log('🎯 Generic flow trigger requested');
-      this.homey.log(`   Command: ${commandName}`);
-      this.homey.log(`   Parameters: ${JSON.stringify(parameters)}`);
+      this.logger.log('🎯 Generic flow trigger requested');
+      this.logger.log(`   Command: ${commandName}`);
+      this.logger.log(`   Parameters: ${JSON.stringify(parameters)}`);
 
       const result = await this.flowManager.triggerCommand(commandName, parameters);
 
@@ -87,7 +90,7 @@ NOTE: This is a workaround. Flows triggered this way work immediately, but won't
         );
       }
     } catch (error) {
-      this.homey.error('Error triggering flow:', error);
+      this.logger.error('Error triggering flow:', error);
       return this.createErrorResponse(error as Error);
     }
   }

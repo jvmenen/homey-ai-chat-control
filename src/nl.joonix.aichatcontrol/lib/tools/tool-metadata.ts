@@ -121,6 +121,28 @@ export const TOOL_METADATA: Record<string, ToolMetadata> = {
     tags: ['flows', 'refresh', 'reload', 'update'],
   },
 
+  // ===== MOODS TOOLS (light scenes) =====
+  get_mood_details: {
+    name: 'get_mood_details',
+    category: 'query',
+    shortDescription: 'Get detailed configuration of a mood (light scene)',
+    tags: ['moods', 'scenes', 'details', 'configuration', 'lights'],
+  },
+
+  set_mood: {
+    name: 'set_mood',
+    category: 'control',
+    shortDescription: 'Activate a mood (light scene) via flow-based activation',
+    tags: ['moods', 'scenes', 'activate', 'control', 'lights', 'set'],
+  },
+
+  find_device_in_moods: {
+    name: 'find_device_in_moods',
+    category: 'query',
+    shortDescription: 'Find which moods include a specific device',
+    tags: ['moods', 'scenes', 'search', 'device', 'migration', 'find'],
+  },
+
   // NOTE: trigger_any_flow is NOT in metadata - it's internal only
   // Used by mcp-server-manager for flow-based tools delegation
 };

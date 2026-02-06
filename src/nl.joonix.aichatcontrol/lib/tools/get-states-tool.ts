@@ -6,18 +6,21 @@ import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { XMLFormatter } from '../formatters/xml-formatter';
+import { Logger } from '../utils/logger';
 
 /**
  * Tool to get current state/values of multiple devices efficiently
  */
 export class GetStatesTool extends BaseTool {
   readonly name = 'get_states';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
+    this.logger = new Logger(homey, 'GetStatesTool');
   }
 
   getDefinition(): MCPTool {
@@ -74,7 +77,7 @@ BEST PRACTICE: Use after get_home_structure. Filter by zone and/or capability to
       const deviceIds = args?.deviceIds as string[] | undefined;
       const capability = args?.capability as string | undefined;
 
-      this.homey.log(
+      this.logger.log(
         `📊 Getting states (zone: ${zoneId || 'all'}, devices: ${deviceIds?.length || 'all'}, capability: ${capability || 'all'})`
       );
 
@@ -88,7 +91,7 @@ BEST PRACTICE: Use after get_home_structure. Filter by zone and/or capability to
 
       return this.createSuccessResponse(formattedXML);
     } catch (error) {
-      this.homey.error('Error getting states:', error);
+      this.logger.error('Error getting states:', error);
       return this.createErrorResponse(error as Error);
     }
   }

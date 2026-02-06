@@ -7,6 +7,7 @@ import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { searchTools, ToolMetadata } from './tool-metadata';
 import { FlowManager } from '../managers/flow-manager';
 import { ToolRegistry } from './tool-registry';
+import { Logger } from '../utils/logger';
 
 /**
  * Arguments for search_tools
@@ -22,6 +23,7 @@ export interface SearchToolsArgs {
  */
 export class SearchToolsTool extends BaseTool {
   readonly name = 'search_tools';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
@@ -29,6 +31,7 @@ export class SearchToolsTool extends BaseTool {
     private flowManager?: FlowManager
   ) {
     super();
+    this.logger = new Logger(homey, 'SearchToolsTool');
   }
 
   getDefinition(): MCPTool {
@@ -122,7 +125,7 @@ export class SearchToolsTool extends BaseTool {
               category: 'flows' as const,
             }));
         } catch (error) {
-          this.homey.error('Error searching flow-based tools:', error);
+          this.logger.error('Error searching flow-based tools:', error);
           // Continue with just static tools if flow search fails
         }
       }
@@ -212,7 +215,7 @@ export class SearchToolsTool extends BaseTool {
           const flowTools = await this.flowManager.getToolsFromFlows();
           flowTools.forEach(tool => flowToolsMap.set(tool.name, tool));
         } catch (error) {
-          this.homey.error('Error fetching flow tool schemas:', error);
+          this.logger.error('Error fetching flow tool schemas:', error);
         }
       }
 

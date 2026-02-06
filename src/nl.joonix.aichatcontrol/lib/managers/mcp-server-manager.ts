@@ -10,6 +10,7 @@ import { ToolRegistry } from '../tools/tool-registry';
 import { IFlowManager } from '../interfaces';
 import { MCP_SERVER_CONFIG, JSONRPC_ERROR_CODES } from '../constants';
 import { MCPTool, HomeyInstance } from '../types';
+import { Logger } from '../utils/logger';
 
 /**
  * MCP JSON-RPC request structure
@@ -40,11 +41,15 @@ export interface MCPError {
  * Separates MCP protocol handling from HTTP transport
  */
 export class MCPServerManager {
+  private logger: Logger;
+
   constructor(
     private toolRegistry: ToolRegistry,
     private homey: HomeyInstance,
     private flowManager?: IFlowManager
-  ) {}
+  ) {
+    this.logger = new Logger(homey, 'MCPServerManager');
+  }
 
   /**
    * Handle an incoming MCP request
@@ -52,7 +57,7 @@ export class MCPServerManager {
   async handleRequest(request: MCPRequest): Promise<MCPResponse> {
     const { method, id, params } = request;
 
-    this.homey.log('Received MCP request:', JSON.stringify(request));
+    this.logger.log('Received MCP request:', JSON.stringify(request));
 
     try {
       switch (method) {
@@ -81,7 +86,7 @@ export class MCPServerManager {
           return this.createError(id, JSONRPC_ERROR_CODES.METHOD_NOT_FOUND, `Method not found: ${method}`);
       }
     } catch (error) {
-      this.homey.error('MCP request error:', error);
+      this.logger.error('MCP request error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return this.createError(id, JSONRPC_ERROR_CODES.INTERNAL_ERROR, 'Internal error: ' + errorMessage);
     }
@@ -139,14 +144,14 @@ export class MCPServerManager {
 
     // Fallback to flow-based tools
     if (this.flowManager) {
-      this.homey.log(`   → Tool not in registry, checking flow-based tools: ${name}`);
+      this.logger.log(`   → Tool not in registry, checking flow-based tools: ${name}`);
 
       const flowTools = await this.flowManager.getToolsFromFlows();
       const flowTool = flowTools.find((t: MCPTool) => t.name === name);
 
       if (flowTool) {
-        this.homey.log(`   ✓ Found as flow-based tool: ${name}`);
-        this.homey.log(`   → Delegating to trigger_any_flow tool`);
+        this.logger.log(`   ✓ Found as flow-based tool: ${name}`);
+        this.logger.log(`   → Delegating to trigger_any_flow tool`);
 
         // Delegate to trigger_any_flow - this avoids code duplication
         const result = await this.toolRegistry.execute('trigger_any_flow', {
@@ -190,8 +195,8 @@ export class MCPServerManager {
    * Handle notifications/initialized
    */
   private handleNotificationInitialized(id: string | number): MCPResponse {
-    this.homey.log('📡 MCP Client initialized and connected');
-    this.homey.log('   Client is now ready to receive tool updates');
+    this.logger.log('📡 MCP Client initialized and connected');
+    this.logger.log('   Client is now ready to receive tool updates');
 
     // Return success but no result (notification acknowledgment)
     return this.createSuccess(id, {});
@@ -206,7 +211,7 @@ export class MCPServerManager {
       id,
       result,
     };
-    this.homey.log('Sending MCP response:', JSON.stringify(response));
+    this.logger.log('Sending MCP response:', JSON.stringify(response));
     return response;
   }
 
@@ -224,7 +229,7 @@ export class MCPServerManager {
       id,
       error: errorObj,
     };
-    this.homey.log('Sending MCP error response:', JSON.stringify(response));
+    this.logger.log('Sending MCP error response:', JSON.stringify(response));
     return response;
   }
 }

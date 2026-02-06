@@ -23,6 +23,7 @@ import {
   HomeyMCPError,
 } from '../utils/errors';
 import { IZoneDeviceManager } from '../interfaces';
+import { Logger } from '../utils/logger';
 
 // Type for Homey API device/zone objects (simplified interface)
 interface HomeyAPIDevice {
@@ -62,79 +63,44 @@ interface HomeyAPIZone {
 
 export class ZoneDeviceManager implements IZoneDeviceManager {
   private homey: HomeyInstance;
-  private homeyApi!: any; // HomeyAPI types don't include all properties we need
-  private initialized: boolean = false;
+  private homeyApi: any; // HomeyAPI types don't include all properties we need
   private isDestroying: boolean = false;
+  private logger: Logger;
 
-  constructor(homey: HomeyInstance) {
+  constructor(homey: HomeyInstance, homeyApi: any) {
     this.homey = homey;
-  }
-
-  /**
-   * Initialize Homey API connection
-   */
-  async init(): Promise<void> {
-    if (this.initialized) {
-      return;
-    }
-
-    if (this.isDestroying) {
-      throw new HomeyMCPError('Cannot initialize: manager is being destroyed', 'MANAGER_DESTROYING');
-    }
-
-    try {
-      const { HomeyAPI } = require('homey-api');
-      this.homeyApi = await HomeyAPI.createAppAPI({ homey: this.homey });
-      this.initialized = true;
-      this.homey.log('ZoneDeviceManager: Homey API initialized');
-    } catch (error) {
-      this.homey.error('ZoneDeviceManager: Failed to initialize Homey API:', error);
-      throw error;
-    }
+    this.homeyApi = homeyApi;
+    this.logger = new Logger(homey, 'ZoneDeviceManager');
   }
 
   /**
    * Get the Homey API instance
    */
-  getHomeyApi(): HomeyAPI {
-    if (!this.initialized) {
-      throw new HomeyMCPError('ZoneDeviceManager not initialized', 'NOT_INITIALIZED');
-    }
+  getHomeyApi(): any {
     return this.homeyApi;
   }
 
   /**
-   * Clean up resources and close API connection
+   * Clean up resources
+   * Note: API connection is managed by HomeyAPIManager
    */
   async destroy(): Promise<void> {
-    if (!this.initialized || this.isDestroying) {
+    if (this.isDestroying) {
       return;
     }
 
     this.isDestroying = true;
-    this.homey.log('ZoneDeviceManager: Cleaning up resources...');
+    this.logger.log('Cleaning up resources...');
 
     try {
-      // Close Homey API connection if it exists and has a destroy method
-      if (this.homeyApi) {
-        // Remove all event listeners first to prevent recursive calls
-        if (typeof this.homeyApi.removeAllListeners === 'function') {
-          this.homeyApi.removeAllListeners();
-        }
-
-        // Destroy the API connection
-        if (typeof this.homeyApi.destroy === 'function') {
-          await this.homeyApi.destroy();
-        }
-
-        this.homeyApi = null;
+      // Remove any event listeners if needed
+      if (this.homeyApi && typeof this.homeyApi.removeAllListeners === 'function') {
+        this.homeyApi.removeAllListeners();
       }
 
-      this.initialized = false;
-      this.homey.log('ZoneDeviceManager: Cleanup completed');
+      this.logger.log('Cleanup completed');
     } catch (error) {
-      // Silently catch errors during cleanup to prevent recursive issues
-      this.homey.error('ZoneDeviceManager: Error during cleanup:', error);
+      this.logger.error('Error during cleanup:', error);
     } finally {
       this.isDestroying = false;
     }
@@ -144,7 +110,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get all zones
    */
   async getZones(): Promise<HomeyZone[]> {
-    await this.init();
 
     try {
       const zonesObj = await this.homeyApi.zones.getZones();
@@ -158,10 +123,10 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         activeLastUpdated: zone.activeLastUpdated || null,
       }));
 
-      this.homey.log(`ZoneDeviceManager: Found ${zones.length} zones`);
+      this.logger.log(`ZoneDeviceManager: Found ${zones.length} zones`);
       return zones;
     } catch (error) {
-      this.homey.error('ZoneDeviceManager: Failed to get zones:', error);
+      this.logger.error('Failed to get zones:', error);
       throw error;
     }
   }
@@ -170,7 +135,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get a specific zone by ID
    */
   async getZone(zoneId: string): Promise<HomeyZone | null> {
-    await this.init();
 
     try {
       const zone = await this.homeyApi.zones.getZone({ id: zoneId });
@@ -189,7 +153,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         activeLastUpdated: zone.activeLastUpdated || null,
       };
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to get zone ${zoneId}:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to get zone ${zoneId}:`, error);
       return null;
     }
   }
@@ -198,7 +162,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get zone hierarchy with parent-child relationships
    */
   async getZoneHierarchy(): Promise<ZoneHierarchy[]> {
-    await this.init();
 
     try {
       const zones = await this.getZones();
@@ -221,7 +184,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
 
       return buildHierarchy(null);
     } catch (error) {
-      this.homey.error('ZoneDeviceManager: Failed to get zone hierarchy:', error);
+      this.logger.error('Failed to get zone hierarchy:', error);
       throw error;
     }
   }
@@ -230,13 +193,12 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get all zones that are currently active (have activity)
    */
   async getActiveZones(): Promise<HomeyZone[]> {
-    await this.init();
 
     try {
       const zones = await this.getZones();
       return zones.filter(zone => zone.active);
     } catch (error) {
-      this.homey.error('ZoneDeviceManager: Failed to get active zones:', error);
+      this.logger.error('Failed to get active zones:', error);
       throw error;
     }
   }
@@ -245,7 +207,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get all devices
    */
   async getDevices(): Promise<HomeyDevice[]> {
-    await this.init();
 
     try {
       const devicesObj = await this.homeyApi.devices.getDevices();
@@ -290,10 +251,10 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         };
       });
 
-      this.homey.log(`ZoneDeviceManager: Found ${devices.length} devices`);
+      this.logger.log(`ZoneDeviceManager: Found ${devices.length} devices`);
       return devices;
     } catch (error) {
-      this.homey.error('ZoneDeviceManager: Failed to get devices:', error);
+      this.logger.error('Failed to get devices:', error);
       throw error;
     }
   }
@@ -302,7 +263,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get a specific device by ID
    */
   async getDevice(deviceId: string): Promise<HomeyDevice | null> {
-    await this.init();
 
     try {
       const device = await this.homeyApi.devices.getDevice({ id: deviceId });
@@ -320,7 +280,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         }
       } catch (error) {
         // If zone lookup fails, just use zone ID
-        this.homey.log(`Could not get zone name for zone ${device.zone}`);
+        this.logger.log(`Could not get zone name for zone ${device.zone}`);
       }
 
       return {
@@ -336,7 +296,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         ready: device.ready !== false,
       };
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to get device ${deviceId}:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to get device ${deviceId}:`, error);
       return null;
     }
   }
@@ -345,13 +305,12 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get all devices in a specific zone
    */
   async getDevicesInZone(zoneId: string): Promise<HomeyDevice[]> {
-    await this.init();
 
     try {
       const devices = await this.getDevices();
       return devices.filter(device => device.zone === zoneId);
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to get devices in zone ${zoneId}:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to get devices in zone ${zoneId}:`, error);
       throw error;
     }
   }
@@ -360,13 +319,12 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get devices by capability (e.g., all devices with 'measure_temperature')
    */
   async getDevicesByCapability(capability: string): Promise<HomeyDevice[]> {
-    await this.init();
 
     try {
       const devices = await this.getDevices();
       return devices.filter(device => device.capabilities.includes(capability));
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to get devices by capability ${capability}:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to get devices by capability ${capability}:`, error);
       throw error;
     }
   }
@@ -375,7 +333,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get capability value from a device
    */
   async getCapabilityValue(deviceId: string, capability: string): Promise<unknown> {
-    await this.init();
 
     try {
       const device = await this.homeyApi.devices.getDevice({ id: deviceId });
@@ -402,7 +359,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
 
       return capabilityObj.value;
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to get capability value:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to get capability value:`, error);
       throw error;
     }
   }
@@ -411,7 +368,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get all temperature readings in a zone
    */
   async getZoneTemperatures(zoneId: string): Promise<ZoneTemperatureResult> {
-    await this.init();
 
     try {
       const zone = await this.getZone(zoneId);
@@ -449,7 +405,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
             units: capabilityObj?.units || '°C',
           });
         } catch (error) {
-          this.homey.error(`Failed to read temperature from ${device.name}:`, error);
+          this.logger.error(`Failed to read temperature from ${device.name}:`, error);
           // Continue with other devices
         }
       }
@@ -475,7 +431,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         max,
       };
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to get zone temperatures:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to get zone temperatures:`, error);
       throw error;
     }
   }
@@ -489,7 +445,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Set a capability value on a device (WRITE operation)
    */
   async setCapabilityValue(deviceId: string, capability: string, value: unknown): Promise<void> {
-    await this.init();
 
     try {
       const device = await this.homeyApi.devices.getDevice({ id: deviceId });
@@ -518,14 +473,14 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       // Convert and validate value type
       const convertedValue = this.convertAndValidateValue(capabilityObj, value);
 
-      this.homey.log(`Setting ${device.name} ${capability}: ${value} (${typeof value}) -> ${convertedValue} (${typeof convertedValue})`);
+      this.logger.log(`Setting ${device.name} ${capability}: ${value} (${typeof value}) -> ${convertedValue} (${typeof convertedValue})`);
 
       // Set the value with the converted type
       await device.setCapabilityValue(capability, convertedValue);
 
-      this.homey.log(`✅ Set ${device.name} ${capability} to ${convertedValue}`);
+      this.logger.log(`✅ Set ${device.name} ${capability} to ${convertedValue}`);
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to set capability value:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to set capability value:`, error);
       throw error;
     }
   }
@@ -534,7 +489,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Toggle a boolean capability (on/off)
    */
   async toggleDevice(deviceId: string, capability: string = 'onoff'): Promise<boolean> {
-    await this.init();
 
     try {
       const device = await this.homeyApi.devices.getDevice({ id: deviceId });
@@ -554,10 +508,10 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       const newValue = !currentValue;
       await this.setCapabilityValue(deviceId, capability, newValue);
 
-      this.homey.log(`✅ Toggled ${device.name} ${capability} from ${currentValue} to ${newValue}`);
+      this.logger.log(`✅ Toggled ${device.name} ${capability} from ${currentValue} to ${newValue}`);
       return newValue;
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to toggle device:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to toggle device:`, error);
       throw error;
     }
   }
@@ -570,7 +524,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
     action: 'on' | 'off' | 'toggle',
     dimLevel?: number
   ): Promise<{ success: number; failed: number; devices: string[] }> {
-    await this.init();
 
     try {
       const zone = await this.getZone(zoneId);
@@ -589,7 +542,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         throw new HomeyMCPError(`No lights found in zone ${zone.name}`, 'NO_LIGHTS_IN_ZONE');
       }
 
-      this.homey.log(`🔦 Setting ${lights.length} lights in ${zone.name} to ${action}`);
+      this.logger.log(`🔦 Setting ${lights.length} lights in ${zone.name} to ${action}`);
 
       const results = {
         success: 0,
@@ -616,14 +569,14 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
           results.devices.push(light.name);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          this.homey.error(`Failed to control ${light.name}:`, errorMessage);
+          this.logger.error(`Failed to control ${light.name}:`, errorMessage);
           results.failed++;
         }
       }
 
       return results;
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to set zone lights:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to set zone lights:`, error);
       throw error;
     }
   }
@@ -636,7 +589,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
     capability: string,
     value: unknown
   ): Promise<{ success: number; failed: number; devices: string[] }> {
-    await this.init();
 
     try {
       const zone = await this.getZone(zoneId);
@@ -655,7 +607,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         throw new CapabilityNotFoundError(zone.name, capability);
       }
 
-      this.homey.log(
+      this.logger.log(
         `🎯 Setting ${capability} to ${value} on ${devicesWithCapability.length} devices in ${zone.name}`
       );
 
@@ -672,14 +624,14 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
           results.devices.push(device.name);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          this.homey.error(`Failed to set ${capability} on ${device.name}:`, errorMessage);
+          this.logger.error(`Failed to set ${capability} on ${device.name}:`, errorMessage);
           results.failed++;
         }
       }
 
       return results;
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to set zone device capability:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to set zone device capability:`, error);
       throw error;
     }
   }
@@ -742,7 +694,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       deviceCount: number;
     }>;
   }> {
-    await this.init();
 
     try {
       // Get all zones, devices, and moods in parallel
@@ -780,7 +731,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         deviceCount: Object.keys(mood.devices).length,
       }));
 
-      this.homey.log(`📸 Home structure snapshot: ${zoneList.length} zones, ${deviceList.length} devices, ${moodList.length} moods`);
+      this.logger.log(`📸 Home structure snapshot: ${zoneList.length} zones, ${deviceList.length} devices, ${moodList.length} moods`);
 
       return {
         zones: zoneList,
@@ -788,7 +739,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         moods: moodList,
       };
     } catch (error) {
-      this.homey.error('ZoneDeviceManager: Failed to get home structure:', error);
+      this.logger.error('Failed to get home structure:', error);
       throw error;
     }
   }
@@ -816,7 +767,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       activeOrigins: string[];
     }>;
   }> {
-    await this.init();
 
     try {
       // Get devices based on filters
@@ -840,7 +790,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         devices = devices.filter(d => d.capabilities.includes(filters.capability!));
       }
 
-      this.homey.log(`🔍 Getting states for ${devices.length} device(s)${filters?.capability ? ` with capability ${filters.capability}` : ''}`);
+      this.logger.log(`🔍 Getting states for ${devices.length} device(s)${filters?.capability ? ` with capability ${filters.capability}` : ''}`);
 
       // Read current values for all capabilities (or just filtered one)
       const deviceStates = await Promise.all(
@@ -860,7 +810,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
                 capabilities[cap] = capObj.value;
               }
             } catch (error) {
-              this.homey.error(`Failed to read ${cap} from ${device.name}:`, error);
+              this.logger.error(`Failed to read ${cap} from ${device.name}:`, error);
               // Continue with other capabilities
             }
           }
@@ -884,14 +834,14 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         activeOrigins: zone.activeOrigins,
       }));
 
-      this.homey.log(`📊 States retrieved: ${deviceStates.length} devices, ${activeZonesList.length} active zones`);
+      this.logger.log(`📊 States retrieved: ${deviceStates.length} devices, ${activeZonesList.length} active zones`);
 
       return {
         devices: deviceStates,
         activeZones: activeZonesList,
       };
     } catch (error) {
-      this.homey.error('ZoneDeviceManager: Failed to get states:', error);
+      this.logger.error('Failed to get states:', error);
       throw error;
     }
   }
@@ -904,7 +854,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get all moods
    */
   async getMoods(): Promise<HomeyMood[]> {
-    await this.init();
 
     try {
       const moodsObj = await this.homeyApi.moods.getMoods();
@@ -916,10 +865,10 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         devices: mood.devices || {},
       }));
 
-      this.homey.log(`🎭 Retrieved ${moods.length} moods`);
+      this.logger.log(`🎭 Retrieved ${moods.length} moods`);
       return moods;
     } catch (error) {
-      this.homey.error('ZoneDeviceManager: Failed to get moods:', error);
+      this.logger.error('Failed to get moods:', error);
       throw error;
     }
   }
@@ -928,7 +877,6 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
    * Get a single mood by ID
    */
   async getMood(moodId: string): Promise<HomeyMood | null> {
-    await this.init();
 
     try {
       const mood = await this.homeyApi.moods.getMood({ id: moodId });
@@ -945,12 +893,40 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         devices: mood.devices || {},
       };
     } catch (error) {
-      this.homey.error(`ZoneDeviceManager: Failed to get mood ${moodId}:`, error);
+      this.logger.error(`ZoneDeviceManager: Failed to get mood ${moodId}:`, error);
       return null;
     }
   }
 
-  // NOTE: activateMood() method removed
-  // Mood activation is NOT supported via the Homey App API (Missing Scopes error)
-  // Use flow-based activation instead via ActivateMoodTool
+  /**
+   * Activate a mood (set mood)
+   * @param moodId - Mood ID to activate
+   */
+  async setMood(moodId: string): Promise<void> {
+    try {
+      this.logger.log(`🎭 Activating mood: ${moodId}`);
+
+      // Try using this.homey.api (ManagerApi) which doesn't require OAuth scopes
+      try {
+        this.logger.log(`🧪 Trying ManagerApi PUT request...`);
+
+        const result = await this.homey.api.put(`/manager/moods/mood/${moodId}`, {});
+        this.logger.log(`✅ Mood activated successfully via ManagerApi!`);
+        this.logger.log(`📥 Result: ${JSON.stringify(result)}`);
+        return;
+      } catch (managerApiError: any) {
+        this.logger.error(`❌ ManagerApi attempt failed:`, managerApiError);
+        this.logger.error(`   Error code: ${managerApiError?.statusCode || 'unknown'}`);
+        this.logger.error(`   Error message: ${managerApiError?.message || 'unknown'}`);
+      }
+
+      // Fallback to HomeyAPI method (will fail with Missing Scopes)
+      this.logger.log(`🔄 Falling back to HomeyAPI method...`);
+      await this.homeyApi.moods.setMood({ id: moodId });
+      this.logger.log(`✅ Mood activated successfully`);
+    } catch (error) {
+      this.logger.error(`ZoneDeviceManager: Failed to activate mood ${moodId}:`, error);
+      throw error;
+    }
+  }
 }

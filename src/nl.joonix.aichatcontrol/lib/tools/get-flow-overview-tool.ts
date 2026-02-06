@@ -6,6 +6,7 @@ import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IFlowManager } from '../interfaces';
 import { XMLFormatter } from '../formatters/xml-formatter';
+import { Logger } from '../utils/logger';
 
 /**
  * Tool to get complete flow overview (all flows with cards, devices, apps)
@@ -13,12 +14,14 @@ import { XMLFormatter } from '../formatters/xml-formatter';
  */
 export class GetFlowOverviewTool extends BaseTool {
   readonly name = 'get_flow_overview';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private flowManager: IFlowManager
   ) {
     super();
+    this.logger = new Logger(homey, 'GetFlowOverviewTool');
   }
 
   getDefinition(): MCPTool {
@@ -75,7 +78,7 @@ BEST PRACTICE: Use together with get_home_structure to cross-reference device ID
 
   async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
-      this.homey.log('📋 Getting complete flow overview');
+      this.logger.log('📋 Getting complete flow overview');
 
       const includeDisabled = args.include_disabled === true;
       const deviceIds = args.device_ids as string[] | undefined;
@@ -84,13 +87,13 @@ BEST PRACTICE: Use together with get_home_structure to cross-reference device ID
 
       // Log filter usage for debugging
       if (deviceIds?.length) {
-        this.homey.log(`   Filtering by devices: ${deviceIds.join(', ')}`);
+        this.logger.log(`   Filtering by devices: ${deviceIds.join(', ')}`);
       }
       if (folderPaths?.length) {
-        this.homey.log(`   Filtering by folders: ${folderPaths.join(', ')}`);
+        this.logger.log(`   Filtering by folders: ${folderPaths.join(', ')}`);
       }
       if (appIds?.length) {
-        this.homey.log(`   Filtering by apps: ${appIds.join(', ')}`);
+        this.logger.log(`   Filtering by apps: ${appIds.join(', ')}`);
       }
 
       const overview = await this.flowManager.getFlowOverview({
@@ -104,7 +107,7 @@ BEST PRACTICE: Use together with get_home_structure to cross-reference device ID
 
       return this.createSuccessResponse(formattedXML);
     } catch (error) {
-      this.homey.error('Error getting flow overview:', error);
+      this.logger.error('Error getting flow overview:', error);
       return this.createErrorResponse(error as Error);
     }
   }

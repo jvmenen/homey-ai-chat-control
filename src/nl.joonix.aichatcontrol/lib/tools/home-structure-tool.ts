@@ -6,6 +6,7 @@ import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { XMLFormatter } from '../formatters/xml-formatter';
+import { Logger } from '../utils/logger';
 
 /**
  * Tool to get complete static home structure (zones + all devices with capabilities)
@@ -13,12 +14,14 @@ import { XMLFormatter } from '../formatters/xml-formatter';
  */
 export class HomeStructureTool extends BaseTool {
   readonly name = 'get_home_structure';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
     private zoneDeviceManager: IZoneDeviceManager
   ) {
     super();
+    this.logger = new Logger(homey, 'HomeStructureTool');
   }
 
   getDefinition(): MCPTool {
@@ -50,14 +53,14 @@ BEST PRACTICE: Call get_home_structure first, then use get_states to get current
 
   async execute(args: Record<string, unknown>): Promise<MCPToolCallResult> {
     try {
-      this.homey.log('🏠 Getting complete home structure (static data)');
+      this.logger.log('🏠 Getting complete home structure (static data)');
 
       const structure = await this.zoneDeviceManager.getHomeStructure();
       const formattedXML = XMLFormatter.formatHomeStructure(structure);
 
       return this.createSuccessResponse(formattedXML);
     } catch (error) {
-      this.homey.error('Error getting home structure:', error);
+      this.logger.error('Error getting home structure:', error);
       return this.createErrorResponse(error as Error);
     }
   }

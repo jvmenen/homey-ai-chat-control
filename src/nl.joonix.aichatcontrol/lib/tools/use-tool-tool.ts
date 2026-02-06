@@ -7,6 +7,7 @@ import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { ToolRegistry } from './tool-registry';
 import { FlowManager } from '../managers/flow-manager';
 import { getToolMetadata, isCoreToolMetadata } from './tool-metadata';
+import { Logger } from '../utils/logger';
 
 /**
  * Arguments for use_tool
@@ -22,6 +23,7 @@ export interface UseToolArgs {
  */
 export class UseToolTool extends BaseTool {
   readonly name = 'use_tool';
+  private logger: Logger;
 
   constructor(
     private homey: HomeyInstance,
@@ -29,6 +31,7 @@ export class UseToolTool extends BaseTool {
     private flowManager?: FlowManager
   ) {
     super();
+    this.logger = new Logger(homey, 'UseToolTool');
   }
 
   getDefinition(): MCPTool {
@@ -90,18 +93,18 @@ export class UseToolTool extends BaseTool {
       const toolName = typedArgs.name;
       const toolArgs = typedArgs.arguments || {};
 
-      this.homey.log(`🔧 use_tool: Executing tool "${toolName}" with args:`, JSON.stringify(toolArgs));
+      this.logger.log(`🔧 use_tool: Executing tool "${toolName}" with args:`, JSON.stringify(toolArgs));
 
       // Check if tool exists in static metadata first
       const metadata = getToolMetadata(toolName);
 
       if (metadata) {
         // Static tool found in metadata
-        this.homey.log(`   → Found static tool in metadata: ${toolName}`);
+        this.logger.log(`   → Found static tool in metadata: ${toolName}`);
 
         // Warn if trying to use a core tool via use_tool (not an error, just FYI)
         if (isCoreToolMetadata(toolName)) {
-          this.homey.log(`ℹ️  Note: '${toolName}' is a core tool and can be called directly (not via use_tool)`);
+          this.logger.log(`ℹ️  Note: '${toolName}' is a core tool and can be called directly (not via use_tool)`);
         }
 
         // Validate required parameters based on metadata
@@ -122,24 +125,24 @@ export class UseToolTool extends BaseTool {
         }
 
         // Delegate to tool registry
-        this.homey.log(`   → Delegating to tool registry for execution`);
+        this.logger.log(`   → Delegating to tool registry for execution`);
         const result = await this.toolRegistry.execute(toolName, toolArgs);
 
-        this.homey.log(`   ✓ Tool execution completed`);
+        this.logger.log(`   ✓ Tool execution completed`);
         return result;
       }
 
       // Not in static metadata - check if it's a flow-based tool
       if (this.flowManager) {
-        this.homey.log(`   → Not found in static metadata, checking flow-based tools...`);
+        this.logger.log(`   → Not found in static metadata, checking flow-based tools...`);
 
         try {
           const flowTools = await this.flowManager.getToolsFromFlows();
           const flowTool = flowTools.find(tool => tool.name === toolName);
 
           if (flowTool) {
-            this.homey.log(`   → Found flow-based tool: ${toolName}`);
-            this.homey.log(`   → Routing to trigger_any_flow with command="${toolName}"`);
+            this.logger.log(`   → Found flow-based tool: ${toolName}`);
+            this.logger.log(`   → Routing to trigger_any_flow with command="${toolName}"`);
 
             // Route to trigger_any_flow
             const result = await this.toolRegistry.execute('trigger_any_flow', {
@@ -147,11 +150,11 @@ export class UseToolTool extends BaseTool {
               parameters: toolArgs,
             });
 
-            this.homey.log(`   ✓ Flow-based tool execution completed`);
+            this.logger.log(`   ✓ Flow-based tool execution completed`);
             return result;
           }
         } catch (error) {
-          this.homey.error('Error checking flow-based tools:', error);
+          this.logger.error('Error checking flow-based tools:', error);
           // Fall through to "tool not found" error below
         }
       }
@@ -162,7 +165,7 @@ export class UseToolTool extends BaseTool {
           'Example: search_tools({ query: "lights" })'
       );
     } catch (error) {
-      this.homey.error('Error in use_tool:', error);
+      this.logger.error('Error in use_tool:', error);
       return this.createErrorResponse(error as Error);
     }
   }

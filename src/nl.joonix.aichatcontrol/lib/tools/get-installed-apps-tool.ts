@@ -5,6 +5,7 @@
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import type { HomeyAPIV3Local } from 'homey-api';
+import { Logger } from '../utils/logger';
 
 // Type aliases for flow cards
 type FlowCardTrigger = HomeyAPIV3Local.ManagerFlow.FlowCardTrigger;
@@ -17,11 +18,14 @@ type FlowCardAction = HomeyAPIV3Local.ManagerFlow.FlowCardAction;
  */
 export class GetInstalledAppsTool extends BaseTool {
   readonly name = 'get_installed_apps';
+  private logger: Logger;
 
   constructor(
-    private homey: HomeyInstance
+    private homey: HomeyInstance,
+    private homeyApi: any
   ) {
     super();
+    this.logger = new Logger(homey, 'GetInstalledAppsTool');
   }
 
   getDefinition(): MCPTool {
@@ -85,21 +89,17 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
       const includeDevices = args?.include_devices || false;
       const includeCapabilities = args?.include_capabilities || false;
 
-      this.homey.log('📱 Getting installed apps', {
+      this.logger.log('📱 Getting installed apps', {
         appIds, includeFlowCards, includeDevices, includeCapabilities
       });
 
-      // Create Homey API instance
-      const { HomeyAPI } = require('homey-api');
-      const api = await HomeyAPI.createAppAPI({ homey: this.homey });
-
       // Get all installed apps
-      const apps = await api.apps.getApps();
+      const apps = await this.homeyApi.apps.getApps();
 
       // Get devices if requested
       let devices: Record<string, HomeyAPIV3Local.ManagerDevices.Device> = {};
       if (includeDevices) {
-        devices = await api.devices.getDevices();
+        devices = await this.homeyApi.devices.getDevices();
       }
 
       // Get flow cards if requested
@@ -107,9 +107,9 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
       let allFlowCardConditions: Record<string, FlowCardCondition> = {};
       let allFlowCardActions: Record<string, FlowCardAction> = {};
       if (includeFlowCards) {
-        allFlowCardTriggers = await api.flow.getFlowCardTriggers();
-        allFlowCardConditions = await api.flow.getFlowCardConditions();
-        allFlowCardActions = await api.flow.getFlowCardActions();
+        allFlowCardTriggers = await this.homeyApi.flow.getFlowCardTriggers();
+        allFlowCardConditions = await this.homeyApi.flow.getFlowCardConditions();
+        allFlowCardActions = await this.homeyApi.flow.getFlowCardActions();
       }
 
       // Format apps into a readable list
@@ -236,7 +236,7 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
 
       return this.createSuccessResponse(message);
     } catch (error) {
-      this.homey.error('Error getting installed apps:', error);
+      this.logger.error('Error getting installed apps:', error);
       return this.createErrorResponse(error as Error);
     }
   }

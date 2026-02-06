@@ -23,12 +23,8 @@ export interface IZoneDeviceManager {
   // ============================================================================
 
   /**
-   * Initialize the manager (setup HomeyAPI connection)
-   */
-  init(): Promise<void>;
-
-  /**
-   * Clean up resources and close API connection
+   * Clean up resources
+   * Note: API connection is managed by HomeyAPIManager
    */
   destroy(): Promise<void>;
 
@@ -225,6 +221,8 @@ export interface IZoneDeviceManager {
    */
   getMood(moodId: string): Promise<HomeyMood | null>;
 
-  // NOTE: Mood activation is NOT supported via the Homey App API
-  // Use flow-based activation instead (see ActivateMoodTool)
+  /**
+   * Activate a mood (set mood)
+   */
+  setMood(moodId: string): Promise<void>;
 }

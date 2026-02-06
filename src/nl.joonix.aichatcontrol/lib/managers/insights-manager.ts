@@ -1,5 +1,7 @@
 import type { HomeyAPI } from 'homey-api';
 import type { ZoneDeviceManager } from './zone-device-manager.js';
+import type { HomeyInstance } from '../types';
+import { Logger } from '../utils/logger';
 
 export interface InsightLog {
   id: string;
@@ -51,10 +53,15 @@ export type InsightResolution =
  * Handles discovery and retrieval of insight logs and their historical data
  */
 export class InsightsManager {
+  private logger: Logger;
+
   constructor(
     private readonly homeyApi: HomeyAPI,
-    private readonly zoneDeviceManager: ZoneDeviceManager
-  ) {}
+    private readonly zoneDeviceManager: ZoneDeviceManager,
+    homey: HomeyInstance
+  ) {
+    this.logger = new Logger(homey, 'InsightsManager');
+  }
 
   /**
    * Get an overview of all available insight logs with device and zone information
@@ -194,7 +201,7 @@ export class InsightsManager {
         });
       } catch (error) {
         // Log error but continue with other logs
-        console.error(`Failed to get insight data for log ${logId}:`, error);
+        this.logger.error(`Failed to get insight data for log ${logId}:`, error);
 
         // Add empty result to indicate the log was requested but failed
         results.push({
