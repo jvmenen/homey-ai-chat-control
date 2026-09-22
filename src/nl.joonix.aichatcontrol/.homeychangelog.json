@@ -22,5 +22,9 @@
   },
   "2.2.1": {
     "en": "improved IP logging on startup of the app"
+  },
+  "2.2.2": {
+    "en": "Technical update: upgraded dependencies (Node/TypeScript/ESLint toolchain) and cleaned up code quality. No functional changes.",
+    "nl": "Technische update: dependencies bijgewerkt en codekwaliteit verbeterd. Geen functionele wijzigingen."
   }
 }
