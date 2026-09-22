@@ -75,7 +75,7 @@ export abstract class BaseTool implements MCPToolHandler {
    */
   protected validateRequiredArgs(args: Record<string, unknown>, required: string[]): void {
     const missing = required.filter(
-      (name) => args[name] === undefined || args[name] === null
+      (name) => args[name] === undefined || args[name] === null,
     );
 
     if (missing.length > 0) {

@@ -3,7 +3,9 @@
  */
 
 import { IZoneDeviceManager } from '../IZoneDeviceManager';
-import { HomeyZone, HomeyDevice, ZoneHierarchy, ZoneTemperatureResult, HomeyMood } from '../../types';
+import {
+  HomeyZone, HomeyDevice, ZoneHierarchy, ZoneTemperatureResult, HomeyMood,
+} from '../../types';
 
 export class MockZoneDeviceManager implements IZoneDeviceManager {
   private mockZones: HomeyZone[] = [];
@@ -20,7 +22,7 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
   }
 
   async getZone(zoneId: string): Promise<HomeyZone | null> {
-    return this.mockZones.find(z => z.id === zoneId) || null;
+    return this.mockZones.find((z) => z.id === zoneId) || null;
   }
 
   async getZoneHierarchy(): Promise<ZoneHierarchy[]> {
@@ -28,7 +30,7 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
   }
 
   async getActiveZones(): Promise<HomeyZone[]> {
-    return this.mockZones.filter(z => z.active);
+    return this.mockZones.filter((z) => z.active);
   }
 
   // Device operations (read)
@@ -37,15 +39,15 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
   }
 
   async getDevice(deviceId: string): Promise<HomeyDevice | null> {
-    return this.mockDevices.find(d => d.id === deviceId) || null;
+    return this.mockDevices.find((d) => d.id === deviceId) || null;
   }
 
   async getDevicesInZone(zoneId: string): Promise<HomeyDevice[]> {
-    return this.mockDevices.filter(d => d.zone === zoneId);
+    return this.mockDevices.filter((d) => d.zone === zoneId);
   }
 
   async getDevicesByCapability(capability: string): Promise<HomeyDevice[]> {
-    return this.mockDevices.filter(d => d.capabilities.includes(capability));
+    return this.mockDevices.filter((d) => d.capabilities.includes(capability));
   }
 
   async getCapabilityValue(deviceId: string, capability: string): Promise<unknown> {
@@ -79,25 +81,25 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
   async setZoneLights(
     zoneId: string,
     action: 'on' | 'off' | 'toggle',
-    dimLevel?: number
+    dimLevel?: number,
   ): Promise<{ success: number; failed: number; devices: string[] }> {
     const devices = await this.getDevicesInZone(zoneId);
-    const lights = devices.filter(d => d.class === 'light');
+    const lights = devices.filter((d) => d.class === 'light');
 
     return {
       success: lights.length,
       failed: 0,
-      devices: lights.map(d => d.name),
+      devices: lights.map((d) => d.name),
     };
   }
 
   async setZoneDeviceCapability(
     zoneId: string,
     capability: string,
-    value: unknown
+    value: unknown,
   ): Promise<{ success: number; failed: number; devices: string[] }> {
     const devices = await this.getDevicesInZone(zoneId);
-    const devicesWithCap = devices.filter(d => d.capabilities.includes(capability));
+    const devicesWithCap = devices.filter((d) => d.capabilities.includes(capability));
 
     for (const device of devicesWithCap) {
       await this.setCapabilityValue(device.id, capability, value);
@@ -106,7 +108,7 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
     return {
       success: devicesWithCap.length,
       failed: 0,
-      devices: devicesWithCap.map(d => d.name),
+      devices: devicesWithCap.map((d) => d.name),
     };
   }
 
@@ -138,13 +140,13 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
     }>;
   }> {
     return {
-      zones: this.mockZones.map(z => ({
+      zones: this.mockZones.map((z) => ({
         id: z.id,
         name: z.name,
         parent: z.parent,
         icon: z.icon,
       })),
-      devices: this.mockDevices.map(d => ({
+      devices: this.mockDevices.map((d) => ({
         id: d.id,
         name: d.name,
         zone: d.zone,
@@ -181,19 +183,19 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
     let devices = this.mockDevices;
 
     if (filters?.zoneId) {
-      devices = devices.filter(d => d.zone === filters.zoneId);
+      devices = devices.filter((d) => d.zone === filters.zoneId);
     }
 
     if (filters?.deviceIds) {
-      devices = devices.filter(d => filters.deviceIds!.includes(d.id));
+      devices = devices.filter((d) => filters.deviceIds!.includes(d.id));
     }
 
     if (filters?.capability) {
-      devices = devices.filter(d => d.capabilities.includes(filters.capability!));
+      devices = devices.filter((d) => d.capabilities.includes(filters.capability!));
     }
 
     return {
-      devices: devices.map(d => ({
+      devices: devices.map((d) => ({
         id: d.id,
         name: d.name,
         zone: d.zone,
@@ -201,8 +203,8 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
         capabilities: {},
       })),
       activeZones: this.mockZones
-        .filter(z => z.active)
-        .map(z => ({
+        .filter((z) => z.active)
+        .map((z) => ({
           id: z.id,
           name: z.name,
           active: z.active,

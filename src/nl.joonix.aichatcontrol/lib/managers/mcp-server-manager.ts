@@ -46,7 +46,7 @@ export class MCPServerManager {
   constructor(
     private toolRegistry: ToolRegistry,
     private homey: HomeyInstance,
-    private flowManager?: IFlowManager
+    private flowManager?: IFlowManager,
   ) {
     this.logger = new Logger(homey, 'MCPServerManager');
   }
@@ -88,7 +88,7 @@ export class MCPServerManager {
     } catch (error) {
       this.logger.error('MCP request error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return this.createError(id, JSONRPC_ERROR_CODES.INTERNAL_ERROR, 'Internal error: ' + errorMessage);
+      return this.createError(id, JSONRPC_ERROR_CODES.INTERNAL_ERROR, `Internal error: ${errorMessage}`);
     }
   }
 
@@ -151,7 +151,7 @@ export class MCPServerManager {
 
       if (flowTool) {
         this.logger.log(`   ✓ Found as flow-based tool: ${name}`);
-        this.logger.log(`   → Delegating to trigger_any_flow tool`);
+        this.logger.log('   → Delegating to trigger_any_flow tool');
 
         // Delegate to trigger_any_flow - this avoids code duplication
         const result = await this.toolRegistry.execute('trigger_any_flow', {
@@ -166,7 +166,7 @@ export class MCPServerManager {
     return this.createError(
       id,
       JSONRPC_ERROR_CODES.INVALID_PARAMS,
-      `Tool '${name}' not found. Use refresh_homey_flows to update the tool list.`
+      `Tool '${name}' not found. Use refresh_homey_flows to update the tool list.`,
     );
   }
 

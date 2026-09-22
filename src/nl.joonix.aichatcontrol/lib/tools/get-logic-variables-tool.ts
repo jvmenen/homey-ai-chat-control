@@ -7,28 +7,56 @@
  */
 
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult, HomeyInstance, LogicVariable } from '../types';
+import {
+  MCPTool, MCPToolCallResult, HomeyInstance, LogicVariable,
+} from '../types';
 import { XMLFormatter } from '../formatters/xml-formatter';
 import { Logger } from '../utils/logger';
+
+// Raw logic variable shape as returned by the Homey `logic` API
+interface RawLogicVariable {
+  id: string;
+  name: string;
+  type: LogicVariable['type'];
+  value: LogicVariable['value'];
+}
+
+// Minimal shape of the Homey API client this helper needs
+export interface HomeyLogicApiClient {
+  logic: {
+    getVariables(): Promise<Record<string, RawLogicVariable>>;
+    getState(): Promise<Record<string, unknown>>;
+  };
+}
+
+function isRawLogicVariable(value: unknown): value is RawLogicVariable {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Partial<RawLogicVariable>;
+  return Boolean(v.id) && Boolean(v.name) && v.type !== undefined;
+}
 
 /**
  * Helper to fetch logic variables using getState() fallback
  * getVariables() requires homey.logic.readonly which isn't available to apps.
  * getState() requires homey.system.readonly which IS available.
  */
-export async function fetchLogicVariables(homeyApi: any, logger: Logger): Promise<LogicVariable[]> {
+export async function fetchLogicVariables(
+  homeyApi: HomeyLogicApiClient,
+  logger: Logger,
+): Promise<LogicVariable[]> {
   try {
     // Try getVariables() first (requires homey.logic.readonly)
     const variablesObj = await homeyApi.logic.getVariables();
-    return Object.values(variablesObj).map((v: any) => ({
+    return Object.values(variablesObj).map((v) => ({
       id: v.id,
       name: v.name,
       type: v.type,
       value: v.value,
     }));
-  } catch (error: any) {
+  } catch (error) {
     // If scope error, fall back to getState() (requires homey.system.readonly)
-    if (error?.statusCode === 403 || error?.message?.includes('Missing Scopes')) {
+    const err = error as { statusCode?: number; message?: string } | undefined;
+    if (err?.statusCode === 403 || err?.message?.includes('Missing Scopes')) {
       logger.log('getVariables() failed with scope error, falling back to getState()');
       const state = await homeyApi.logic.getState();
 
@@ -37,9 +65,9 @@ export async function fetchLogicVariables(homeyApi: any, logger: Logger): Promis
         // The state object may have a 'variable' key with all variables
         const variablesObj = state.variable || state.variables || state;
         if (typeof variablesObj === 'object') {
-          return Object.values(variablesObj)
-            .filter((v: any) => v && v.id && v.name && v.type !== undefined)
-            .map((v: any) => ({
+          return Object.values(variablesObj as Record<string, unknown>)
+            .filter(isRawLogicVariable)
+            .map((v) => ({
               id: v.id,
               name: v.name,
               type: v.type,
@@ -60,7 +88,7 @@ export class GetLogicVariablesTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private homeyApi: any
+    private homeyApi: HomeyLogicApiClient,
   ) {
     super();
     this.logger = new Logger(homey, 'GetLogicVariablesTool');
@@ -69,6 +97,7 @@ export class GetLogicVariablesTool extends BaseTool {
   getDefinition(): MCPTool {
     return {
       name: this.name,
+      // eslint-disable-next-line max-len -- single-line tool description text sent to the AI; wrapping would inject a literal newline into it
       description: `Retrieve all Homey Logic variables with their current values. Logic variables are used in flows for dynamic automation behavior, storing values like thresholds, counters, flags, and text. Can filter by variable type or search by name.
 
 WHEN TO USE:

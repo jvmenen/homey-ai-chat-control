@@ -10,11 +10,13 @@ export class MockHomeyClient implements IHomeyClient {
 
   log(...args: unknown[]): void {
     this.logs.push(args);
+    // eslint-disable-next-line no-console -- test mock intentionally mirrors output to the console
     console.log('[MockHomey]', ...args);
   }
 
   error(...args: unknown[]): void {
     this.errors.push(args);
+    // eslint-disable-next-line no-console -- test mock intentionally mirrors output to the console
     console.error('[MockHomey ERROR]', ...args);
   }
 

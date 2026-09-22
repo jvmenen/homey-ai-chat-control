@@ -17,7 +17,7 @@ export class TriggerAnyFlowTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private flowManager: IFlowManager
+    private flowManager: IFlowManager,
   ) {
     super();
     this.logger = new Logger(homey, 'TriggerAnyFlowTool');
@@ -82,13 +82,13 @@ NOTE: This is a workaround. Flows triggered this way work immediately, but won't
 
       if (result.success) {
         return this.createSuccessResponse(
-          `✅ Successfully triggered flow: ${commandName}\n${result.message || ''}`
-        );
-      } else {
-        return this.createErrorResponse(
-          `Failed to trigger flow: ${commandName}\n${result.message || 'Unknown error'}`
+          `✅ Successfully triggered flow: ${commandName}\n${result.message || ''}`,
         );
       }
+      return this.createErrorResponse(
+        `Failed to trigger flow: ${commandName}\n${result.message || 'Unknown error'}`,
+      );
+
     } catch (error) {
       this.logger.error('Error triggering flow:', error);
       return this.createErrorResponse(error as Error);

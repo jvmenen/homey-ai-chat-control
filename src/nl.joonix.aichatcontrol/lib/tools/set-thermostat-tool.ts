@@ -14,7 +14,7 @@ export class SetThermostatTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'SetThermostatTool');
@@ -73,7 +73,7 @@ NOTE: This only sets the TARGET temperature, not current temperature (which is r
       await this.zoneDeviceManager.setCapabilityValue(deviceId, 'target_temperature', temperature);
 
       return this.createSuccessResponse(
-        `🌡️ Thermostat Set\n\nDevice: ${device.name}\nTarget Temperature: ${temperature}°C`
+        `🌡️ Thermostat Set\n\nDevice: ${device.name}\nTarget Temperature: ${temperature}°C`,
       );
     } catch (error) {
       this.logger.error('Error setting thermostat:', error);

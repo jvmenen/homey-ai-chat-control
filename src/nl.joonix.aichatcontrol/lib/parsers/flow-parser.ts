@@ -12,7 +12,7 @@ export function normalizeCommandName(command: string): string {
   return command
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '_');  // Replace one or more spaces with underscore
+    .replace(/\s+/g, '_'); // Replace one or more spaces with underscore
 }
 
 /**

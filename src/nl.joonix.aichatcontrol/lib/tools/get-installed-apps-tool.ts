@@ -2,15 +2,41 @@
  * Get Installed Apps Tool - List all installed Homey apps
  */
 
+import type { HomeyAPIV3Local } from 'homey-api';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
-import type { HomeyAPIV3Local } from 'homey-api';
 import { Logger } from '../utils/logger';
 
 // Type aliases for flow cards
 type FlowCardTrigger = HomeyAPIV3Local.ManagerFlow.FlowCardTrigger;
 type FlowCardCondition = HomeyAPIV3Local.ManagerFlow.FlowCardCondition;
 type FlowCardAction = HomeyAPIV3Local.ManagerFlow.FlowCardAction;
+
+// App shape as returned by `homeyApi.apps.getApps()` (simplified; the HomeyAPI type for
+// this is incomplete, so only the fields this file reads are declared here)
+interface HomeyApp {
+  id?: string;
+  name?: string;
+  version?: string;
+  author?: { name?: string };
+  brandColor?: string;
+  manifest?: { capabilities?: Record<string, { title?: { en?: string } }> };
+}
+
+// Minimal shape of the Homey API client this tool needs.
+interface HomeyApiClient {
+  apps: {
+    getApps(): Promise<Record<string, HomeyApp>>;
+  };
+  devices: {
+    getDevices(): Promise<Record<string, HomeyAPIV3Local.ManagerDevices.Device>>;
+  };
+  flow: {
+    getFlowCardTriggers(): Promise<Record<string, FlowCardTrigger>>;
+    getFlowCardConditions(): Promise<Record<string, FlowCardCondition>>;
+    getFlowCardActions(): Promise<Record<string, FlowCardAction>>;
+  };
+}
 
 /**
  * Tool to get all installed apps with their IDs and names
@@ -22,7 +48,7 @@ export class GetInstalledAppsTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private homeyApi: any
+    private homeyApi: HomeyApiClient,
   ) {
     super();
     this.logger = new Logger(homey, 'GetInstalledAppsTool');
@@ -90,7 +116,7 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
       const includeCapabilities = args?.include_capabilities || false;
 
       this.logger.log('📱 Getting installed apps', {
-        appIds, includeFlowCards, includeDevices, includeCapabilities
+        appIds, includeFlowCards, includeDevices, includeCapabilities,
       });
 
       // Get all installed apps
@@ -115,26 +141,20 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
       // Format apps into a readable list
       let message = 'Installed Homey Apps:\n\n';
 
-      const appList = Object.entries(apps).map(([id, app]: [string, any]) => { // App type from HomeyAPI is incomplete
+      const appList = Object.entries(apps).map(([id, app]) => {
         // Filter flow cards for this app based on ownerUri
         const appUri = `homey:app:${id}`;
 
         return {
           id,
-          name: app.name || app.id,
+          name: app.name || app.id || 'unknown',
           version: app.version || 'unknown',
           author: app.author?.name || 'unknown',
           brand: app.brandColor || undefined,
           flowCards: includeFlowCards ? {
-            triggers: Object.values(allFlowCardTriggers).filter((card: FlowCardTrigger) =>
-              card.ownerUri?.startsWith(appUri)
-            ),
-            conditions: Object.values(allFlowCardConditions).filter((card: FlowCardCondition) =>
-              card.ownerUri?.startsWith(appUri)
-            ),
-            actions: Object.values(allFlowCardActions).filter((card: FlowCardAction) =>
-              card.ownerUri?.startsWith(appUri)
-            ),
+            triggers: Object.values(allFlowCardTriggers).filter((card: FlowCardTrigger) => card.ownerUri?.startsWith(appUri)),
+            conditions: Object.values(allFlowCardConditions).filter((card: FlowCardCondition) => card.ownerUri?.startsWith(appUri)),
+            actions: Object.values(allFlowCardActions).filter((card: FlowCardAction) => card.ownerUri?.startsWith(appUri)),
           } : undefined,
           devices: includeDevices ? Object.values(devices).filter((d: HomeyAPIV3Local.ManagerDevices.Device) => {
             const driverId = d.driverId || '';
@@ -147,7 +167,7 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
       // Filter by app IDs if specified
       let filteredAppList = appList;
       if (appIds.length > 0) {
-        filteredAppList = appList.filter(app => appIds.includes(app.id));
+        filteredAppList = appList.filter((app) => appIds.includes(app.id));
       }
 
       // Sort by name for easier reading
@@ -172,27 +192,27 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
             message += `  Flow Cards: ${totalCards} total (${triggerCount} triggers, ${conditionCount} conditions, ${actionCount} actions)\n`;
 
             if (triggerCount > 0) {
-              message += `    Triggers:\n`;
+              message += '    Triggers:\n';
               for (const trigger of app.flowCards.triggers) {
                 message += `      - ${trigger.id}: ${trigger.title || trigger.id}\n`;
               }
             }
 
             if (conditionCount > 0) {
-              message += `    Conditions:\n`;
+              message += '    Conditions:\n';
               for (const condition of app.flowCards.conditions) {
                 message += `      - ${condition.id}: ${condition.title || condition.id}\n`;
               }
             }
 
             if (actionCount > 0) {
-              message += `    Actions:\n`;
+              message += '    Actions:\n';
               for (const action of app.flowCards.actions) {
                 message += `      - ${action.id}: ${action.title || action.id}\n`;
               }
             }
           } else {
-            message += `  Flow Cards: None\n`;
+            message += '  Flow Cards: None\n';
           }
         }
 
@@ -205,7 +225,7 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
               message += `    - ${device.name} (${device.id})\n`;
             }
           } else {
-            message += `  Devices: None\n`;
+            message += '  Devices: None\n';
           }
         }
 
@@ -220,7 +240,7 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
               message += `    - ${capId}: ${capTitle}\n`;
             }
           } else {
-            message += `  Custom Capabilities: None\n`;
+            message += '  Custom Capabilities: None\n';
           }
         }
 

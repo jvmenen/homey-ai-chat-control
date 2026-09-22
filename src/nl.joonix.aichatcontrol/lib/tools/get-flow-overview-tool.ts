@@ -18,7 +18,7 @@ export class GetFlowOverviewTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private flowManager: IFlowManager
+    private flowManager: IFlowManager,
   ) {
     super();
     this.logger = new Logger(homey, 'GetFlowOverviewTool');

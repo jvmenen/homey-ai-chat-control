@@ -2,8 +2,10 @@
  * Flow Manager - Handles Homey flow discovery and execution
  */
 
-import type { HomeyAPIV3Local } from 'homey-api';
-import { HomeyFlow, MCPTool, FlowExecutionResult, HomeyInstance } from '../types';
+import type { FlowCardTrigger } from 'homey';
+import {
+  HomeyFlow, MCPTool, FlowExecutionResult, HomeyInstance,
+} from '../types';
 import { FlowParser } from '../parsers/flow-parser';
 import { TOKEN_NAMES, MCP_TRIGGER_IDS } from '../constants';
 import {
@@ -14,9 +16,6 @@ import {
   FlowOverviewOptions,
 } from '../interfaces';
 import { Logger } from '../utils/logger';
-
-// FlowCardTrigger doesn't export properly, use any for now
-type FlowCardTrigger = any;
 
 // Type for flow card from Homey API
 interface HomeyAPICard {
@@ -36,19 +35,42 @@ interface HomeyAPIFlow {
   type?: string;
   trigger?: HomeyAPICard;
   cards?: Record<string, HomeyAPICard> | Array<HomeyAPICard>;
+  folder?: string;
   [key: string]: unknown;
+}
+
+// Type for device objects returned by the Homey API's `devices.getDevices()`
+// (simplified; only the fields this file actually reads)
+interface HomeyAPIDevice {
+  driverId?: string;
+  id?: string;
+  [key: string]: unknown;
+}
+
+// Minimal shape of the Homey API client this manager needs.
+// The full `HomeyAPIV3Local` type from `homey-api` doesn't declare `.flow`/`.devices`,
+// so we describe just the surface used here instead of typing the whole client.
+interface HomeyApiClient {
+  flow: {
+    getFlows(): Promise<Record<string, unknown>>;
+    getAdvancedFlows(): Promise<Record<string, unknown>>;
+    getFlowFolders(): Promise<Record<string, unknown>>;
+  };
+  devices: {
+    getDevices(): Promise<Record<string, unknown>>;
+  };
 }
 
 export class FlowManager implements IFlowManager {
   private homey: HomeyInstance;
-  private homeyApi: any; // HomeyAPIV3Local type doesn't include .flow property
+  private homeyApi: HomeyApiClient;
   private triggerCard: FlowCardTrigger;
   private availableCommands: Set<string> = new Set();
   // Cache parameter order per command for correct token mapping
   private commandParameterOrder: Map<string, string[]> = new Map();
   private logger: Logger;
 
-  constructor(homey: HomeyInstance, homeyApi: any, triggerCard: FlowCardTrigger) {
+  constructor(homey: HomeyInstance, homeyApi: HomeyApiClient, triggerCard: FlowCardTrigger) {
     this.homey = homey;
     this.homeyApi = homeyApi;
     this.triggerCard = triggerCard;
@@ -63,9 +85,7 @@ export class FlowManager implements IFlowManager {
       const allFlows = await this.homeyApi.flow.getFlows();
 
       // Filter flows with mcp_ prefix
-      const mcpFlows = (Object.values(allFlows) as HomeyAPIFlow[]).filter((flow) =>
-        flow.name && flow.name.toLowerCase().startsWith('mcp_')
-      ) as HomeyFlow[];
+      const mcpFlows = (Object.values(allFlows) as HomeyAPIFlow[]).filter((flow) => flow.name && flow.name.toLowerCase().startsWith('mcp_')) as HomeyFlow[];
 
       this.logger.log(`Found ${mcpFlows.length} MCP flows`);
       return mcpFlows;
@@ -109,7 +129,7 @@ export class FlowManager implements IFlowManager {
       const mcpFlows: Array<{ flowId: string; flowName: string; command: string; description?: string }> = [];
 
       // Scan all flows for MCP triggers
-      for (const [flowId, flow] of Object.entries(allFlows)) {
+      for (const flow of Object.values(allFlows)) {
         const flowData = flow as HomeyAPIFlow;
 
         // Skip disabled flows
@@ -163,9 +183,9 @@ export class FlowManager implements IFlowManager {
     // Groups: 1=name, 2=type, 3=validation (optional), 4=optional marker (?), 5=description
     // Note: Case-insensitive type matching (String, string, NUMBER, etc.)
     const paramRegex = /^\s*(\w+):\s*(string|number|boolean)(?:\(([^)]+)\))?(\?)?\s*-\s*(.+)$/gim;
-    let match;
+    let match = paramRegex.exec(description);
 
-    while ((match = paramRegex.exec(description)) !== null) {
+    while (match !== null) {
       const [, paramName, paramType, validation, isOptional, paramDescription] = match;
 
       parameterNames.push(paramName);
@@ -190,7 +210,7 @@ export class FlowManager implements IFlowManager {
           }
         } else if (normalizedType === 'string') {
           // Parse enum: "on|off|auto"
-          const enumValues = validation.split('|').map(v => v.trim());
+          const enumValues = validation.split('|').map((v) => v.trim());
           propSchema.enum = enumValues;
           this.logger.log(`   📝 String enum: ${enumValues.join(', ')}`);
         }
@@ -206,6 +226,8 @@ export class FlowManager implements IFlowManager {
       const optionalMarker = isOptional ? ' (optional)' : ' (required)';
       const validationInfo = validation ? ` [${validation}]` : '';
       this.logger.log(`   📝 Parsed param: ${paramName} (${paramType}${validationInfo})${optionalMarker} - ${paramDescription}`);
+
+      match = paramRegex.exec(description);
     }
 
     return { properties, required, parameterNames };
@@ -299,7 +321,7 @@ export class FlowManager implements IFlowManager {
    */
   async triggerCommand(
     toolName: string,
-    parameters?: Record<string, any>
+    parameters?: Record<string, unknown>,
   ): Promise<FlowExecutionResult> {
     try {
       this.logger.log('========================================');
@@ -321,7 +343,7 @@ export class FlowManager implements IFlowManager {
       // Map parameters to value1, value2, etc. tokens
       // IMPORTANT: Always provide ALL tokens (value1-5), even if empty
       // Homey expects all defined tokens to have a value
-      const tokens: Record<string, any> = {
+      const tokens: Record<string, string> = {
         [TOKEN_NAMES.COMMAND]: toolName,
         [TOKEN_NAMES.VALUE_1]: '',
         [TOKEN_NAMES.VALUE_2]: '',
@@ -346,7 +368,7 @@ export class FlowManager implements IFlowManager {
           });
         } else {
           // Fallback to Object.values order (may be unpredictable)
-          this.logger.log(`   ⚠️  No cached parameter order found, using object key order`);
+          this.logger.log('   ⚠️  No cached parameter order found, using object key order');
           const paramValues = Object.values(parameters);
           paramValues.forEach((value, index) => {
             if (index < 5) {
@@ -399,7 +421,7 @@ export class FlowManager implements IFlowManager {
     try {
       const flows = await this.homeyApi.flow.getFlows();
       const flow = (Object.values(flows) as HomeyAPIFlow[]).find(
-        (f) => f.name.toLowerCase() === flowName.toLowerCase()
+        (f) => f.name.toLowerCase() === flowName.toLowerCase(),
       ) as HomeyFlow | undefined;
 
       return flow || null;
@@ -428,7 +450,9 @@ export class FlowManager implements IFlowManager {
    * Returns all flows with cards, devices, and apps for AI analysis
    */
   async getFlowOverview(options: FlowOverviewOptions = {}): Promise<FlowOverviewData> {
-    const { includeDisabled = false, deviceIds, folderPaths, appIds } = options;
+    const {
+      includeDisabled = false, deviceIds, folderPaths, appIds,
+    } = options;
 
     try {
       this.logger.log('📋 Getting complete flow overview...');
@@ -445,7 +469,7 @@ export class FlowManager implements IFlowManager {
       const devices = await this.homeyApi.devices.getDevices();
       const deviceToAppMap = new Map<string, string>();
       for (const [deviceId, device] of Object.entries(devices)) {
-        const dev = device as any;
+        const dev = device as HomeyAPIDevice;
         // Extract app ID from driverId (format: homey:app:com.athom.hue:driver:bulb)
         if (dev.driverId) {
           const appMatch = dev.driverId.match(/homey:app:([^:]+)/);
@@ -516,7 +540,7 @@ export class FlowManager implements IFlowManager {
         }
 
         // Extract folder information
-        const folderId = (flow as any).folder;
+        const folderId = flow.folder;
         const folderInfo = folderId ? folderMap.get(folderId) : undefined;
 
         const flowItem: FlowOverviewItem = {
@@ -615,7 +639,7 @@ export class FlowManager implements IFlowManager {
       for (const card of cardsArray) {
         if (!card.id || !card.type) continue;
 
-        const cardInfo = this.parseCard(card.type as any, card);
+        const cardInfo = this.parseCard(card.type as 'trigger' | 'condition' | 'action', card);
         if (cardInfo) {
           cards.push(cardInfo);
         }
@@ -630,11 +654,11 @@ export class FlowManager implements IFlowManager {
    */
   private parseCard(
     type: 'trigger' | 'condition' | 'action',
-    card: HomeyAPICard
+    card: HomeyAPICard,
   ): FlowCardInfo | null {
     const cardId = card.id;
-    const uri = card.uri;
-    const args = card.args;
+    const { uri } = card;
+    const { args } = card;
 
     // Extract app ID from URI (format: homey:app:com.athom.hue:...)
     const appId = this.extractAppId(uri || cardId);
@@ -643,9 +667,9 @@ export class FlowManager implements IFlowManager {
     const deviceId = this.extractDeviceId(args, uri || cardId);
 
     // Extract token information
-    let droptoken: boolean | undefined = undefined;
-    let tokens: Array<{ name: string; type?: string; title?: string }> | undefined = undefined;
-    let tokenInput: { deviceId: string; capability: string } | undefined = undefined;
+    let droptoken: boolean | undefined;
+    let tokens: Array<{ name: string; type?: string; title?: string }> | undefined;
+    let tokenInput: { deviceId: string; capability: string } | undefined;
 
     // Parse droptoken - can be boolean (produces tokens) or string (consumes token)
     if (card.droptoken) {
@@ -741,7 +765,8 @@ export class FlowManager implements IFlowManager {
 
     // Device might be an object with an id property
     if (deviceValue && typeof deviceValue === 'object' && 'id' in deviceValue) {
-      return (deviceValue as any).id;
+      const { id } = deviceValue as { id?: unknown };
+      return id as string | undefined;
     }
 
     return undefined;
@@ -751,11 +776,14 @@ export class FlowManager implements IFlowManager {
    * Build folder hierarchy map with names and full paths
    * Returns a map of folderId -> { name, parent, path }
    */
-  private buildFolderHierarchy(flowFolders: Record<string, any>): Map<string, { name: string; parent: string | null; path: string }> {
+  private buildFolderHierarchy(
+    flowFolders: Record<string, unknown>,
+  ): Map<string, { name: string; parent: string | null; path: string }> {
     const folderMap = new Map<string, { name: string; parent: string | null; path: string }>();
 
     // First pass: store basic folder info
-    for (const [folderId, folder] of Object.entries(flowFolders)) {
+    for (const [folderId, folderValue] of Object.entries(flowFolders)) {
+      const folder = folderValue as { name?: string; parent?: string | null };
       folderMap.set(folderId, {
         name: folder.name || 'Unknown',
         parent: folder.parent || null,
@@ -790,17 +818,17 @@ export class FlowManager implements IFlowManager {
    */
   private matchesFilters(
     flow: FlowOverviewItem,
-    filters: { deviceIds?: string[]; folderPaths?: string[]; appIds?: string[] }
+    filters: { deviceIds?: string[]; folderPaths?: string[]; appIds?: string[] },
   ): boolean {
     const { deviceIds, folderPaths, appIds } = filters;
 
     // Device filter: Flow must contain at least one of the specified devices
     if (deviceIds && deviceIds.length > 0) {
       const flowDeviceIds = flow.cards
-        .map(card => card.deviceId)
+        .map((card) => card.deviceId)
         .filter((id): id is string => !!id);
 
-      const hasMatchingDevice = deviceIds.some(filterId => flowDeviceIds.includes(filterId));
+      const hasMatchingDevice = deviceIds.some((filterId) => flowDeviceIds.includes(filterId));
       if (!hasMatchingDevice) {
         return false;
       }
@@ -812,9 +840,7 @@ export class FlowManager implements IFlowManager {
         return false; // No folder = doesn't match
       }
 
-      const hasMatchingFolder = folderPaths.some(filterPath =>
-        flow.folderPath === filterPath
-      );
+      const hasMatchingFolder = folderPaths.some((filterPath) => flow.folderPath === filterPath);
       if (!hasMatchingFolder) {
         return false;
       }
@@ -822,9 +848,9 @@ export class FlowManager implements IFlowManager {
 
     // App filter: Flow must use at least one of the specified apps
     if (appIds && appIds.length > 0) {
-      const flowAppIds = flow.cards.map(card => card.appId);
+      const flowAppIds = flow.cards.map((card) => card.appId);
 
-      const hasMatchingApp = appIds.some(filterId => flowAppIds.includes(filterId));
+      const hasMatchingApp = appIds.some((filterId) => flowAppIds.includes(filterId));
       if (!hasMatchingApp) {
         return false;
       }

@@ -3,7 +3,7 @@
  */
 
 import { FlowOverviewData } from '../interfaces';
-import type { InsightLog, InsightLogWithData } from '../managers/insights-manager.js';
+import type { InsightLog, InsightLogWithData } from '../managers/insights-manager';
 import type { LogicVariable } from '../types';
 
 /**
@@ -15,7 +15,7 @@ interface DeviceStates {
     name: string;
     zone: string;
     class: string;
-    capabilities: Record<string, any>;
+    capabilities: Record<string, unknown>;
   }>;
   activeZones?: Array<{
     id: string;
@@ -65,11 +65,11 @@ export class XMLFormatter {
    * @returns Formatted XML string with instructions
    */
   static formatHomeStructure(structure: HomeStructure): string {
-    let message = `Here is your complete home structure in XML format for easy parsing:\n\n`;
+    let message = 'Here is your complete home structure in XML format for easy parsing:\n\n';
     message += `SUMMARY: ${structure.zones.length} zones, ${structure.devices.length} devices, ${structure.moods.length} moods\n\n`;
-    message += `<home>\n`;
+    message += '<home>\n';
     message += this.buildZoneHierarchyXML(structure.zones, null, structure.devices, structure.moods);
-    message += `</home>\n\n`;
+    message += '</home>\n\n';
     message += this.getHomeStructureInstructions();
 
     return message;
@@ -87,7 +87,7 @@ export class XMLFormatter {
     zones: HomeStructure['zones'],
     parentId: string | null,
     devices: HomeStructure['devices'],
-    moods: HomeStructure['moods']
+    moods: HomeStructure['moods'],
   ): string {
     let xml = '';
     const children = zones.filter((z) => z.parent === parentId);
@@ -110,7 +110,7 @@ export class XMLFormatter {
         moodsInZone.forEach((mood) => {
           xml += this.buildMoodXML(mood);
         });
-        xml += `    </moods>\n`;
+        xml += '    </moods>\n';
       }
 
       // Recurse for child zones
@@ -119,7 +119,7 @@ export class XMLFormatter {
         xml += childXML;
       }
 
-      xml += `  </zone>\n`;
+      xml += '  </zone>\n';
     });
 
     return xml;
@@ -143,10 +143,10 @@ export class XMLFormatter {
     // Only include status/ready if they are NOT the default (available/ready)
     let statusAttr = '';
     if (!device.available) {
-      statusAttr += ` status="unavailable"`;
+      statusAttr += ' status="unavailable"';
     }
     if (!device.ready) {
-      statusAttr += ` ready="not-ready"`;
+      statusAttr += ' ready="not-ready"';
     }
 
     return `    <${deviceTag} id="${device.id}" name="${device.name}" app-id="${appId}"${statusAttr} capabilities="${capsList}" />\n`;
@@ -213,19 +213,19 @@ export class XMLFormatter {
    */
   static formatDeviceStates(
     states: DeviceStates,
-    filters?: { zoneId?: string; deviceIds?: string[]; capability?: string }
+    filters?: { zoneId?: string; deviceIds?: string[]; capability?: string },
   ): string {
-    let message = `Current device states in XML format for easy parsing:\n\n`;
+    let message = 'Current device states in XML format for easy parsing:\n\n';
 
     const filterSummary = [];
     if (filters?.zoneId) filterSummary.push(`zone-id="${filters.zoneId}"`);
     if (filters?.capability) filterSummary.push(`capability="${filters.capability}"`);
     if (filters?.deviceIds) filterSummary.push(`device-count="${filters.deviceIds.length}"`);
 
-    message += `<states${filterSummary.length > 0 ? ' ' + filterSummary.join(' ') : ''}>\n`;
+    message += `<states${filterSummary.length > 0 ? ` ${filterSummary.join(' ')}` : ''}>\n`;
 
     if (states.devices.length === 0) {
-      message += `  <!-- No devices found matching the filters -->\n`;
+      message += '  <!-- No devices found matching the filters -->\n';
     } else {
       states.devices.forEach((device) => {
         const deviceTag = device.class || 'device';
@@ -244,7 +244,7 @@ export class XMLFormatter {
             }
           });
         } else {
-          message += `    <!-- No readable capabilities -->\n`;
+          message += '    <!-- No readable capabilities -->\n';
         }
 
         message += `  </${deviceTag}>\n`;
@@ -258,10 +258,10 @@ export class XMLFormatter {
         const origins = zone.activeOrigins.length > 0 ? ` origins="${zone.activeOrigins.join(', ')}"` : '';
         message += `    <zone id="${zone.id}" name="${zone.name}"${origins} />\n`;
       });
-      message += `  </active-zones>\n`;
+      message += '  </active-zones>\n';
     }
 
-    message += `</states>\n\n`;
+    message += '</states>\n\n';
     message += this.getDeviceStatesInstructions();
 
     return message;
@@ -287,7 +287,7 @@ export class XMLFormatter {
   static formatFlowOverview(overview: FlowOverviewData): string {
     const { summary } = overview;
 
-    let message = `Here is your complete flow overview in XML format for easy parsing:\n\n`;
+    let message = 'Here is your complete flow overview in XML format for easy parsing:\n\n';
     message += `SUMMARY: ${summary.total} flows (${summary.enabled} enabled, ${summary.disabled} disabled, ${summary.mcpFlows} MCP flows)\n\n`;
     message += `<flows total="${summary.total}" enabled="${summary.enabled}" disabled="${summary.disabled}">\n`;
 
@@ -295,7 +295,7 @@ export class XMLFormatter {
       message += this.buildFlowXML(flow);
     }
 
-    message += `</flows>\n\n`;
+    message += '</flows>\n\n';
     message += this.getFlowOverviewInstructions();
 
     return message;
@@ -309,7 +309,7 @@ export class XMLFormatter {
 
     // Only include non-default values
     if (flow.type === 'advanced') {
-      xml += ` type="advanced"`;
+      xml += ' type="advanced"';
     }
 
     if (flow.folderPath) {
@@ -320,14 +320,14 @@ export class XMLFormatter {
     }
 
     if (!flow.enabled) {
-      xml += ` enabled="false"`;
+      xml += ' enabled="false"';
     }
 
     if (flow.mcpCommand) {
       xml += ` mcp-command="${this.escapeXml(flow.mcpCommand)}"`;
     }
 
-    xml += `>\n`;
+    xml += '>\n';
 
     // Add cards
     for (const card of flow.cards) {
@@ -345,7 +345,7 @@ export class XMLFormatter {
       const hasTokenInput = !!card.tokenInput;
 
       if (hasArgs || hasTokens || hasTokenInput) {
-        xml += `>\n`;
+        xml += '>\n';
 
         // Add card arguments if present
         if (hasArgs) {
@@ -375,11 +375,11 @@ export class XMLFormatter {
 
         xml += `    </${card.type}>\n`;
       } else {
-        xml += ` />\n`;
+        xml += ' />\n';
       }
     }
 
-    xml += `  </flow>\n`;
+    xml += '  </flow>\n';
 
     return xml;
   }
@@ -399,6 +399,7 @@ export class XMLFormatter {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
     } catch (error) {
+      // eslint-disable-next-line no-console -- static formatter has no Homey instance/logger to report through
       console.error('Error escaping XML:', error, 'Input:', str);
       return '';
     }
@@ -429,12 +430,12 @@ export class XMLFormatter {
     const numberLogs = logs.filter((l) => l.type === 'number').length;
     const booleanLogs = logs.filter((l) => l.type === 'boolean').length;
 
-    let message = `Here are the available insight logs in XML format for easy parsing:\n\n`;
+    let message = 'Here are the available insight logs in XML format for easy parsing:\n\n';
     message += `SUMMARY: ${logs.length} insight logs (${numberLogs} numeric, ${booleanLogs} boolean)\n\n`;
     message += `<insights total="${logs.length}" numeric="${numberLogs}" boolean="${booleanLogs}">\n`;
 
     if (logs.length === 0) {
-      message += `  <!-- No insight logs found -->\n`;
+      message += '  <!-- No insight logs found -->\n';
     } else {
       for (const log of logs) {
         message += `  <log id="${this.escapeXml(log.id)}"`;
@@ -469,11 +470,11 @@ export class XMLFormatter {
           message += ` zone-id="${this.escapeXml(log.zoneId)}"`;
         }
 
-        message += ` />\n`;
+        message += ' />\n';
       }
     }
 
-    message += `</insights>\n\n`;
+    message += '</insights>\n\n';
     message += this.getInsightLogsInstructions();
 
     return message;
@@ -502,18 +503,18 @@ export class XMLFormatter {
   static formatInsightData(data: InsightLogWithData[], resolution?: string): string {
     const totalEntries = data.reduce((sum, log) => sum + log.entries.length, 0);
 
-    let message = `Historical insight data in XML format for easy parsing:\n\n`;
+    let message = 'Historical insight data in XML format for easy parsing:\n\n';
     message += `SUMMARY: ${data.length} logs, ${totalEntries} total entries`;
     if (resolution) {
       message += `, resolution: ${resolution}`;
     }
-    message += `\n\n`;
+    message += '\n\n';
 
     const resolutionAttr = resolution ? ` resolution="${resolution}"` : '';
     message += `<insight-data${resolutionAttr}>\n`;
 
     if (data.length === 0) {
-      message += `  <!-- No insight data found -->\n`;
+      message += '  <!-- No insight data found -->\n';
     } else {
       for (const log of data) {
         message += `  <log id="${this.escapeXml(log.id)}"`;
@@ -527,20 +528,20 @@ export class XMLFormatter {
         message += ` entries="${log.entries.length}"`;
 
         if (log.entries.length === 0) {
-          message += ` />\n`;
+          message += ' />\n';
         } else {
-          message += `>\n`;
+          message += '>\n';
 
           for (const entry of log.entries) {
             message += `    <entry timestamp="${this.escapeXml(entry.timestamp)}" value="${entry.value}" />\n`;
           }
 
-          message += `  </log>\n`;
+          message += '  </log>\n';
         }
       }
     }
 
-    message += `</insight-data>\n\n`;
+    message += '</insight-data>\n\n';
     message += this.getInsightDataInstructions();
 
     return message;
@@ -569,11 +570,11 @@ export class XMLFormatter {
    */
   static formatMoodDetails(
     mood: { id: string; name: string; zone: string; preset: string | null },
-    deviceDetails: Array<{ id: string; name: string; state: Record<string, any> }>,
-    zoneName: string
+    deviceDetails: Array<{ id: string; name: string; state: Record<string, unknown> }>,
+    zoneName: string,
   ): string {
     try {
-      let message = `Mood Details:\n\n`;
+      let message = 'Mood Details:\n\n';
       message += `<mood id="${this.escapeXml(mood.id)}" name="${this.escapeXml(mood.name)}"`;
       message += ` zone-name="${this.escapeXml(zoneName)}"`;
       if (mood.preset) {
@@ -582,12 +583,12 @@ export class XMLFormatter {
       message += ` device-count="${deviceDetails.length}">\n`;
 
       if (deviceDetails.length === 0) {
-        message += `  <!-- No devices in this mood -->\n`;
+        message += '  <!-- No devices in this mood -->\n';
       } else {
         for (const device of deviceDetails) {
           try {
             message += `  <device id="${this.escapeXml(device.id)}" name="${this.escapeXml(device.name)}">\n`;
-            message += `    <state`;
+            message += '    <state';
 
             // Format state capabilities
             const stateEntries = Object.entries(device.state || {});
@@ -602,21 +603,23 @@ export class XMLFormatter {
               }
             }
 
-            message += ` />\n`;
-            message += `  </device>\n`;
+            message += ' />\n';
+            message += '  </device>\n';
           } catch (deviceError) {
             // Log error but continue with other devices
+            // eslint-disable-next-line no-console -- static formatter has no Homey instance/logger to report through
             console.error(`Error formatting device ${device.id}:`, deviceError);
             message += `  <!-- Error formatting device ${this.escapeXml(device.id)} -->\n`;
           }
         }
       }
 
-      message += `</mood>\n\n`;
+      message += '</mood>\n\n';
       message += this.getMoodDetailsInstructions();
 
       return message;
     } catch (error) {
+      // eslint-disable-next-line no-console -- static formatter has no Homey instance/logger to report through
       console.error('Error in formatMoodDetails:', error);
       throw new Error(`Failed to format mood details: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -645,15 +648,19 @@ export class XMLFormatter {
   static formatDeviceInMoods(
     deviceId: string,
     deviceName: string,
-    moodsWithDevice: Array<{ mood: { id: string; name: string; preset: string | null }; zoneName: string; state: Record<string, any> }>
+    moodsWithDevice: Array<{
+      mood: { id: string; name: string; preset: string | null };
+      zoneName: string;
+      state: Record<string, unknown>;
+    }>,
   ): string {
-    let message = `Device in Moods Search:\n\n`;
+    let message = 'Device in Moods Search:\n\n';
     message += `<device-in-moods device-id="${this.escapeXml(deviceId)}"`;
     message += ` device-name="${this.escapeXml(deviceName)}"`;
     message += ` found-in="${moodsWithDevice.length}">\n`;
 
     if (moodsWithDevice.length === 0) {
-      message += `  <!-- Device is not used in any moods (safe to remove/migrate) -->\n`;
+      message += '  <!-- Device is not used in any moods (safe to remove/migrate) -->\n';
     } else {
       for (const { mood, zoneName, state } of moodsWithDevice) {
         message += `  <mood id="${this.escapeXml(mood.id)}" name="${this.escapeXml(mood.name)}"`;
@@ -661,9 +668,9 @@ export class XMLFormatter {
         if (mood.preset) {
           message += ` preset="${mood.preset}"`;
         }
-        message += `>\n`;
+        message += '>\n';
 
-        message += `    <state`;
+        message += '    <state';
 
         // Format state capabilities
         const stateEntries = Object.entries(state);
@@ -673,12 +680,12 @@ export class XMLFormatter {
           }
         }
 
-        message += ` />\n`;
-        message += `  </mood>\n`;
+        message += ' />\n';
+        message += '  </mood>\n';
       }
     }
 
-    message += `</device-in-moods>\n\n`;
+    message += '</device-in-moods>\n\n';
     message += this.getDeviceInMoodsInstructions();
 
     return message;
@@ -706,29 +713,29 @@ export class XMLFormatter {
    */
   static formatLogicVariables(
     variables: LogicVariable[],
-    filters?: { filterType?: string; searchName?: string }
+    filters?: { filterType?: string; searchName?: string },
   ): string {
-    let message = `Logic variables in XML format for easy parsing:\n\n`;
+    let message = 'Logic variables in XML format for easy parsing:\n\n';
     message += `SUMMARY: ${variables.length} variable(s)`;
     if (filters?.filterType) message += ` (type: ${filters.filterType})`;
     if (filters?.searchName) message += ` (search: "${filters.searchName}")`;
-    message += `\n\n`;
+    message += '\n\n';
 
     message += `<logic-variables count="${variables.length}">\n`;
 
     if (variables.length === 0) {
-      message += `  <!-- No logic variables found matching the filters -->\n`;
+      message += '  <!-- No logic variables found matching the filters -->\n';
     } else {
       for (const variable of variables) {
         message += `  <variable id="${this.escapeXml(variable.id)}"`;
         message += ` name="${this.escapeXml(variable.name)}"`;
         message += ` type="${variable.type}"`;
         message += ` value="${this.escapeXml(String(variable.value))}"`;
-        message += ` />\n`;
+        message += ' />\n';
       }
     }
 
-    message += `</logic-variables>\n\n`;
+    message += '</logic-variables>\n\n';
     message += this.getLogicVariablesInstructions();
 
     return message;

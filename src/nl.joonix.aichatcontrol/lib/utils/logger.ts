@@ -14,7 +14,7 @@ export class Logger {
 
   constructor(
     private homey: HomeyInstance,
-    className: string
+    className: string,
   ) {
     this.prefix = `[${className}]`;
   }

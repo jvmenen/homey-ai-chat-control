@@ -13,7 +13,7 @@ export class ControlZoneLightsTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'ControlZoneLightsTool');
@@ -87,7 +87,7 @@ EXAMPLE: action="on", dim=50 → turns on all zone lights at 50%`,
       if (result.failed > 0) {
         message += `\n❌ Failed: ${result.failed} lights`;
       }
-      message += `\n\nAffected Lights:\n`;
+      message += '\n\nAffected Lights:\n';
       result.devices.forEach((name) => {
         message += `  - ${name}\n`;
       });

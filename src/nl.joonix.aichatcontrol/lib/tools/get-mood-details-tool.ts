@@ -3,7 +3,9 @@
  */
 
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult, HomeyInstance, HomeyMood } from '../types';
+import {
+  MCPTool, MCPToolCallResult, HomeyInstance, HomeyMood,
+} from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { XMLFormatter } from '../formatters/xml-formatter';
 import { Logger } from '../utils/logger';
@@ -14,7 +16,7 @@ export class GetMoodDetailsTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'GetMoodDetailsTool');
@@ -68,7 +70,7 @@ EXAMPLE: "Show me the 'Movie Night' mood configuration"`,
       // Validate: at least one parameter required
       if (!moodId && !moodName) {
         return this.createErrorResponse(
-          new Error('Either moodId or moodName must be provided')
+          new Error('Either moodId or moodName must be provided'),
         );
       }
 
@@ -83,8 +85,8 @@ EXAMPLE: "Show me the 'Movie Night' mood configuration"`,
         if (!foundMood) {
           return this.createErrorResponse(
             new Error(
-              `Mood not found: "${moodName}"\n\nAvailable moods:\n${this.formatAvailableMoods(moods)}`
-            )
+              `Mood not found: "${moodName}"\n\nAvailable moods:\n${this.formatAvailableMoods(moods)}`,
+            ),
           );
         }
 
@@ -103,7 +105,7 @@ EXAMPLE: "Show me the 'Movie Night' mood configuration"`,
       const zoneName = zone ? zone.name : mood.zone;
 
       // Get device details
-      const deviceDetails: Array<{ id: string; name: string; state: Record<string, any> }> = [];
+      const deviceDetails: Array<{ id: string; name: string; state: Record<string, unknown> }> = [];
 
       this.logger.log(`📋 Processing ${Object.keys(mood.devices).length} devices in mood`);
 
@@ -113,7 +115,9 @@ EXAMPLE: "Show me the 'Movie Night' mood configuration"`,
           const deviceName = device ? device.name : `Unknown Device (${deviceId})`;
 
           // Normalize state structure (might be .state or direct)
-          const state = (deviceData as any).state || deviceData;
+          const rawData = deviceData as { state?: Record<string, unknown> } | Record<string, unknown>;
+          const state = (rawData as { state?: Record<string, unknown> }).state
+            || (rawData as Record<string, unknown>);
 
           // Ensure state is an object
           if (typeof state !== 'object' || state === null) {
@@ -127,15 +131,15 @@ EXAMPLE: "Show me the 'Movie Night' mood configuration"`,
             deviceDetails.push({
               id: deviceId,
               name: deviceName,
-              state: state as Record<string, any>,
+              state,
             });
           }
-        } catch (error) {
+        } catch {
           // Device might have been deleted but still in mood
           this.logger.log(`Warning: Device ${deviceId} in mood but not found`);
           deviceDetails.push({
             id: deviceId,
-            name: `(deleted device)`,
+            name: '(deleted device)',
             state: {},
           });
         }

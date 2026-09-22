@@ -13,7 +13,7 @@ export class ControlDeviceTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'ControlDeviceTool');
@@ -70,7 +70,7 @@ NOTE: For lights, prefer set_light (handles dim as 0-100). For zone-wide control
 
       const deviceId = args.deviceId as string;
       const capability = args.capability as string;
-      const value = args.value;
+      const { value } = args;
       this.logger.log(`🎛️ Controlling device: ${deviceId} - ${capability} = ${value} (type: ${typeof value})`);
 
       await this.zoneDeviceManager.setCapabilityValue(deviceId, capability, value);
@@ -78,7 +78,7 @@ NOTE: For lights, prefer set_light (handles dim as 0-100). For zone-wide control
       const device = await this.zoneDeviceManager.getDevice(deviceId);
 
       return this.createSuccessResponse(
-        `✅ Device Controlled Successfully\n\nDevice: ${device?.name || deviceId}\nCapability: ${capability}\nNew Value: ${value}`
+        `✅ Device Controlled Successfully\n\nDevice: ${device?.name || deviceId}\nCapability: ${capability}\nNew Value: ${value}`,
       );
     } catch (error) {
       this.logger.error('Error controlling device:', error);

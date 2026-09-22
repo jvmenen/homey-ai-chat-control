@@ -6,10 +6,11 @@
 /**
  * Base error class for all Homey MCP errors
  */
+// eslint-disable-next-line max-classes-per-file -- these are small, related error subclasses; splitting into 10 files would hurt readability
 export class HomeyMCPError extends Error {
   constructor(
     message: string,
-    public readonly code?: string
+    public readonly code?: string,
   ) {
     super(message);
     this.name = 'HomeyMCPError';

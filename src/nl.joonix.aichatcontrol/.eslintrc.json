@@ -1,3 +1,41 @@
 {
-  "extends": "athom/homey-app"
+  "extends": "athom/homey-app",
+  "settings": {
+    "import/resolver": {
+      "typescript": {},
+      "node": {
+        "extensions": [".js", ".ts", ".json"]
+      }
+    },
+    "node": {
+      "tryExtensions": [".js", ".ts", ".json", ".node"]
+    }
+  },
+  "rules": {
+    "import/prefer-default-export": "off",
+    "no-use-before-define": "off",
+    "@typescript-eslint/no-use-before-define": [
+      "error",
+      { "ignoreTypeReferences": true, "functions": false, "classes": false }
+    ],
+    "import/extensions": [
+      "error",
+      "ignorePackages",
+      {
+        "js": "never",
+        "mjs": "never",
+        "jsx": "never",
+        "ts": "never"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["api.ts", "app.ts"],
+      "rules": {
+        "import/no-import-module-exports": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["test-phase1.ts"]
 }

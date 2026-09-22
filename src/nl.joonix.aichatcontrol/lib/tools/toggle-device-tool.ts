@@ -13,7 +13,7 @@ export class ToggleDeviceTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'ToggleDeviceTool');
@@ -58,7 +58,7 @@ NOTE: This reads current state first, then sets opposite. For explicit on/off, u
       const device = await this.zoneDeviceManager.getDevice(deviceId);
 
       return this.createSuccessResponse(
-        `✅ Device Toggled\n\nDevice: ${device?.name || deviceId}\nNew State: ${newState ? 'ON' : 'OFF'}`
+        `✅ Device Toggled\n\nDevice: ${device?.name || deviceId}\nNew State: ${newState ? 'ON' : 'OFF'}`,
       );
     } catch (error) {
       this.logger.error('Error toggling device:', error);

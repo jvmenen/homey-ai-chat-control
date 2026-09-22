@@ -13,7 +13,7 @@ export class ControlZoneCapabilityTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'ControlZoneCapabilityTool');
@@ -69,13 +69,13 @@ NOTE: For lights specifically, prefer control_zone_lights (more user-friendly).`
 
       const zoneId = args.zoneId as string;
       const capability = args.capability as string;
-      const value = args.value;
+      const { value } = args;
       this.logger.log(`⚡ Controlling zone capability: ${zoneId} - ${capability} = ${value}`);
 
       const result = await this.zoneDeviceManager.setZoneDeviceCapability(zoneId, capability, value);
       const zone = await this.zoneDeviceManager.getZone(zoneId);
 
-      let message = `⚡ Zone Capability Controlled\n\n`;
+      let message = '⚡ Zone Capability Controlled\n\n';
       message += `Zone: ${zone?.name || zoneId}\n`;
       message += `Capability: ${capability}\n`;
       message += `Value: ${value}\n\n`;
@@ -83,7 +83,7 @@ NOTE: For lights specifically, prefer control_zone_lights (more user-friendly).`
       if (result.failed > 0) {
         message += `❌ Failed: ${result.failed} devices\n`;
       }
-      message += `\nAffected Devices:\n`;
+      message += '\nAffected Devices:\n';
       result.devices.forEach((name: string) => {
         message += `  - ${name}\n`;
       });

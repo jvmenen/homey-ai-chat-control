@@ -1,7 +1,7 @@
-import { BaseTool } from './base-tool.js';
-import type { InsightsManager } from '../managers/insights-manager.js';
-import { XMLFormatter } from '../formatters/xml-formatter.js';
-import type { MCPToolCallResult, MCPTool } from '../types.js';
+import { BaseTool } from './base-tool';
+import type { InsightsManager } from '../managers/insights-manager';
+import { XMLFormatter } from '../formatters/xml-formatter';
+import type { MCPToolCallResult, MCPTool } from '../types';
 
 /**
  * Arguments for get_insight_logs tool
@@ -27,10 +27,10 @@ export class GetInsightLogsTool extends BaseTool {
     return {
       name: 'get_insight_logs',
       description:
-        'Get a list of all available insight logs (historical data tracking) for Homey devices. ' +
-        'Insights track metrics like temperature, power consumption, humidity, on/off states, motion detection, etc. over time. ' +
-        'Use this tool to discover what historical data is available, then use get_insight_data to retrieve actual time-series entries. ' +
-        'Returns XML format with log metadata including device and zone information.',
+        'Get a list of all available insight logs (historical data tracking) for Homey devices. '
+        + 'Insights track metrics like temperature, power consumption, humidity, on/off states, motion detection, etc. over time. '
+        + 'Use this tool to discover what historical data is available, then use get_insight_data to retrieve actual time-series entries. '
+        + 'Returns XML format with log metadata including device and zone information.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -78,8 +78,7 @@ export class GetInsightLogsTool extends BaseTool {
         ],
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred while retrieving insight logs';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred while retrieving insight logs';
 
       return {
         content: [

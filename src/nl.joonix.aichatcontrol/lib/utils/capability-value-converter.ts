@@ -88,7 +88,7 @@ export class CapabilityValueConverter {
 
     if (typeof value === 'string') {
       const num = parseFloat(value);
-      if (isNaN(num)) {
+      if (Number.isNaN(num)) {
         throw new CapabilityValueError(`Cannot convert "${value}" to number`);
       }
       return num;
@@ -112,7 +112,9 @@ export class CapabilityValueConverter {
    * Validate converted value against capability constraints
    */
   private static validate(capabilityDef: DeviceCapability, value: unknown): void {
-    const { type, min, max, values } = capabilityDef;
+    const {
+      type, min, max, values,
+    } = capabilityDef;
 
     // Type validation after conversion
     if (type === 'number' && typeof value !== 'number') {

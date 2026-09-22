@@ -186,7 +186,7 @@ export function isCoreToolMetadata(toolName: string): boolean {
  */
 export function searchTools(query: string, category?: ToolMetadata['category']): ToolMetadata[] {
   // Split query into words for flexible matching
-  const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  const queryWords = query.toLowerCase().split(/\s+/).filter((w) => w.length > 0);
 
   return Object.values(TOOL_METADATA).filter((meta) => {
     // Category filter
@@ -196,6 +196,6 @@ export function searchTools(query: string, category?: ToolMetadata['category']):
 
     // Word-based search: match if ANY query word appears in name, description, or tags
     const searchText = `${meta.name} ${meta.shortDescription} ${meta.tags.join(' ')}`.toLowerCase();
-    return queryWords.some(word => searchText.includes(word));
+    return queryWords.some((word) => searchText.includes(word));
   });
 }

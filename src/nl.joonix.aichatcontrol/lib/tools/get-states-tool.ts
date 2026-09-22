@@ -17,7 +17,7 @@ export class GetStatesTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'GetStatesTool');
@@ -78,7 +78,7 @@ BEST PRACTICE: Use after get_home_structure. Filter by zone and/or capability to
       const capability = args?.capability as string | undefined;
 
       this.logger.log(
-        `📊 Getting states (zone: ${zoneId || 'all'}, devices: ${deviceIds?.length || 'all'}, capability: ${capability || 'all'})`
+        `📊 Getting states (zone: ${zoneId || 'all'}, devices: ${deviceIds?.length || 'all'}, capability: ${capability || 'all'})`,
       );
 
       const filters: { zoneId?: string; deviceIds?: string[]; capability?: string } = {};

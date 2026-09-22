@@ -28,7 +28,7 @@ export class SearchToolsTool extends BaseTool {
   constructor(
     private homey: HomeyInstance,
     private toolRegistry: ToolRegistry,
-    private flowManager?: FlowManager
+    private flowManager?: FlowManager,
   ) {
     super();
     this.logger = new Logger(homey, 'SearchToolsTool');
@@ -38,48 +38,48 @@ export class SearchToolsTool extends BaseTool {
     return {
       name: 'search_tools',
       description:
-        'Search for available Homey control and query tools. ' +
-        'Use this to discover tools for specific tasks before using them. ' +
-        '\n\n' +
-        'WHEN TO USE:\n' +
-        '- When you need to control devices but don\'t know which tool to use\n' +
-        '- When looking for specific functionality (e.g., "lights", "temperature")\n' +
-        '- To explore what tools are available for a category\n' +
-        '\n' +
-        'SEARCH BEHAVIOR:\n' +
-        '- Query is split into individual words\n' +
-        '- Matches if ANY word appears in tool name or description\n' +
-        '- Case-insensitive matching\n' +
-        '\n' +
-        'MULTILINGUAL TIP:\n' +
-        '- Tools may be in different languages (English, Dutch, etc.)\n' +
-        '- For best results, include BOTH English AND user language terms\n' +
-        '- Example: "lights lampen" (English + Dutch) or "temperature temperatuur"\n' +
-        '- This ensures you find both built-in tools (often English) and custom flows (user language)\n' +
-        '\n' +
-        'EXAMPLES:\n' +
-        '- search_tools({ query: "lights" }) → finds set_light, control_zone_lights\n' +
-        '- search_tools({ query: "lights lampen" }) → finds both English and Dutch tools\n' +
-        '- search_tools({ query: "temperature temp" }) → broader search\n' +
-        '- search_tools({ query: "radio speaker audio" }) → matches ANY of these words\n' +
-        '- search_tools({ category: "control" }) → lists all control tools\n' +
-        '\n' +
-        'RETURNS: Tool names, descriptions, and full parameter schemas. Use use_tool to execute them.',
+        'Search for available Homey control and query tools. '
+        + 'Use this to discover tools for specific tasks before using them. '
+        + '\n\n'
+        + 'WHEN TO USE:\n'
+        + '- When you need to control devices but don\'t know which tool to use\n'
+        + '- When looking for specific functionality (e.g., "lights", "temperature")\n'
+        + '- To explore what tools are available for a category\n'
+        + '\n'
+        + 'SEARCH BEHAVIOR:\n'
+        + '- Query is split into individual words\n'
+        + '- Matches if ANY word appears in tool name or description\n'
+        + '- Case-insensitive matching\n'
+        + '\n'
+        + 'MULTILINGUAL TIP:\n'
+        + '- Tools may be in different languages (English, Dutch, etc.)\n'
+        + '- For best results, include BOTH English AND user language terms\n'
+        + '- Example: "lights lampen" (English + Dutch) or "temperature temperatuur"\n'
+        + '- This ensures you find both built-in tools (often English) and custom flows (user language)\n'
+        + '\n'
+        + 'EXAMPLES:\n'
+        + '- search_tools({ query: "lights" }) → finds set_light, control_zone_lights\n'
+        + '- search_tools({ query: "lights lampen" }) → finds both English and Dutch tools\n'
+        + '- search_tools({ query: "temperature temp" }) → broader search\n'
+        + '- search_tools({ query: "radio speaker audio" }) → matches ANY of these words\n'
+        + '- search_tools({ category: "control" }) → lists all control tools\n'
+        + '\n'
+        + 'RETURNS: Tool names, descriptions, and full parameter schemas. Use use_tool to execute them.',
       inputSchema: {
         type: 'object',
         properties: {
           query: {
             type: 'string',
             description:
-              'Search query to find tools (e.g., "lights", "temperature", "flows"). ' +
-              'Searches in tool names, descriptions, and tags.',
+              'Search query to find tools (e.g., "lights", "temperature", "flows"). '
+              + 'Searches in tool names, descriptions, and tags.',
           },
           category: {
             type: 'string',
             enum: ['core', 'control', 'query', 'insights', 'flows', 'apps'],
             description:
-              'Optional: Filter by tool category. ' +
-              'control=device/zone control, insights=historical data, flows=automation.',
+              'Optional: Filter by tool category. '
+              + 'control=device/zone control, insights=historical data, flows=automation.',
           },
         },
         required: ['query'],
@@ -106,7 +106,7 @@ export class SearchToolsTool extends BaseTool {
           const flowTools = await this.flowManager.getToolsFromFlows();
 
           // Split query into words for flexible matching
-          const queryWords = typedArgs.query.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+          const queryWords = typedArgs.query.toLowerCase().split(/\s+/).filter((w) => w.length > 0);
 
           flowResults = flowTools
             .filter((tool) => {
@@ -117,7 +117,7 @@ export class SearchToolsTool extends BaseTool {
 
               // Word-based search: match if ANY query word appears in name or description
               const searchText = `${tool.name} ${tool.description}`.toLowerCase();
-              return queryWords.some(word => searchText.includes(word));
+              return queryWords.some((word) => searchText.includes(word));
             })
             .map((tool) => ({
               name: tool.name,
@@ -136,11 +136,11 @@ export class SearchToolsTool extends BaseTool {
         return this.createSuccessResponse(
           `No tools found matching query "${typedArgs.query}"${
             typedArgs.category ? ` in category "${typedArgs.category}"` : ''
-          }.\n\n` +
-            'Try:\n' +
-            '- Broader search terms (e.g., "light" instead of "brightness")\n' +
-            '- Different category\n' +
-            '- Removing category filter'
+          }.\n\n`
+            + 'Try:\n'
+            + '- Broader search terms (e.g., "light" instead of "brightness")\n'
+            + '- Different category\n'
+            + '- Removing category filter',
         );
       }
 
@@ -159,7 +159,7 @@ export class SearchToolsTool extends BaseTool {
   private async formatSearchResults(
     results: ToolMetadata[],
     flowResults: Array<{ name: string; description: string; category: 'flows' }>,
-    query: string
+    query: string,
   ): Promise<string> {
     const totalResults = results.length + flowResults.length;
     let output = `🔍 Found ${totalResults} tool${totalResults === 1 ? '' : 's'} matching "${query}"\n\n`;
@@ -173,7 +173,7 @@ export class SearchToolsTool extends BaseTool {
         acc[tool.category].push(tool);
         return acc;
       },
-      {} as Record<string, ToolMetadata[]>
+      {} as Record<string, ToolMetadata[]>,
     );
 
     // Format each category (static tools)
@@ -206,14 +206,14 @@ export class SearchToolsTool extends BaseTool {
 
     // Format flow-based tools separately
     if (flowResults.length > 0) {
-      output += `📂 FLOWS (Custom flow-based tools)\n`;
+      output += '📂 FLOWS (Custom flow-based tools)\n';
 
       // Get flow tools to access their full schemas
-      let flowToolsMap: Map<string, MCPTool> = new Map();
+      const flowToolsMap: Map<string, MCPTool> = new Map();
       if (this.flowManager) {
         try {
           const flowTools = await this.flowManager.getToolsFromFlows();
-          flowTools.forEach(tool => flowToolsMap.set(tool.name, tool));
+          flowTools.forEach((tool) => flowToolsMap.set(tool.name, tool));
         } catch (error) {
           this.logger.error('Error fetching flow tool schemas:', error);
         }
@@ -233,9 +233,9 @@ export class SearchToolsTool extends BaseTool {
       output += '\n';
     }
 
-    output +=
-      '💡 NEXT STEP: Use the use_tool tool to execute any of these tools.\n' +
-      '   Example: use_tool({ name: "set_light", arguments: { ... } })';
+    output
+      += '💡 NEXT STEP: Use the use_tool tool to execute any of these tools.\n'
+      + '   Example: use_tool({ name: "set_light", arguments: { ... } })';
 
     return output;
   }
@@ -243,7 +243,7 @@ export class SearchToolsTool extends BaseTool {
   /**
    * Format JSON Schema inputSchema as readable parameter list
    */
-  private formatInputSchema(schema: any): string {
+  private formatInputSchema(schema: MCPTool['inputSchema']): string {
     if (!schema || !schema.properties) {
       return '';
     }
@@ -252,7 +252,11 @@ export class SearchToolsTool extends BaseTool {
     const required = schema.required || [];
 
     for (const [propName, propSchema] of Object.entries(schema.properties)) {
-      const prop = propSchema as any;
+      const prop = propSchema as {
+        type?: string;
+        enum?: string[];
+        description?: string;
+      };
       const isRequired = required.includes(propName);
       const requiredMark = isRequired ? '(required)' : '(optional)';
 

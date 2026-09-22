@@ -3,7 +3,9 @@
  */
 
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult, HomeyInstance, HomeyMood, HomeyDevice } from '../types';
+import {
+  MCPTool, MCPToolCallResult, HomeyInstance, HomeyDevice,
+} from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { XMLFormatter } from '../formatters/xml-formatter';
 import { Logger } from '../utils/logger';
@@ -14,7 +16,7 @@ export class FindDeviceInMoodsTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'FindDeviceInMoodsTool');
@@ -70,7 +72,7 @@ EXAMPLE: "Is my bedroom light in any moods?"`,
       // Validate: at least one parameter required
       if (!deviceId && !deviceName) {
         return this.createErrorResponse(
-          new Error('Either deviceId or deviceName must be provided')
+          new Error('Either deviceId or deviceName must be provided'),
         );
       }
 
@@ -87,8 +89,8 @@ EXAMPLE: "Is my bedroom light in any moods?"`,
         if (!foundDevice) {
           return this.createErrorResponse(
             new Error(
-              `Device not found: "${deviceName}"\n\nDid you mean one of these?\n${this.formatSimilarDevices(devices, deviceName)}`
-            )
+              `Device not found: "${deviceName}"\n\nDid you mean one of these?\n${this.formatSimilarDevices(devices, deviceName)}`,
+            ),
           );
         }
 
@@ -111,7 +113,7 @@ EXAMPLE: "Is my bedroom light in any moods?"`,
       const moodsWithDevice: Array<{
         mood: { id: string; name: string; preset: string | null };
         zoneName: string;
-        state: Record<string, any>;
+        state: Record<string, unknown>;
       }> = [];
 
       for (const mood of moods) {
@@ -121,8 +123,11 @@ EXAMPLE: "Is my bedroom light in any moods?"`,
           const zoneName = zone ? zone.name : mood.zone;
 
           // Normalize state structure
-          const deviceData = mood.devices[targetDeviceId!];
-          const state = (deviceData as any).state || deviceData;
+          const deviceData = mood.devices[targetDeviceId!] as
+            | { state?: Record<string, unknown> }
+            | Record<string, unknown>;
+          const state = (deviceData as { state?: Record<string, unknown> }).state
+            || (deviceData as Record<string, unknown>);
 
           moodsWithDevice.push({
             mood: {
@@ -131,7 +136,7 @@ EXAMPLE: "Is my bedroom light in any moods?"`,
               preset: mood.preset,
             },
             zoneName,
-            state: state as Record<string, any>,
+            state,
           });
         }
       }
@@ -140,7 +145,7 @@ EXAMPLE: "Is my bedroom light in any moods?"`,
       const formattedOutput = XMLFormatter.formatDeviceInMoods(
         targetDeviceId!,
         deviceDisplayName,
-        moodsWithDevice
+        moodsWithDevice,
       );
 
       return this.createSuccessResponse(formattedOutput);

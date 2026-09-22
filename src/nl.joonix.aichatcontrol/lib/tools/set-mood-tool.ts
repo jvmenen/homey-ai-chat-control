@@ -3,7 +3,9 @@
  */
 
 import { BaseTool } from './base-tool';
-import { MCPTool, MCPToolCallResult, HomeyInstance, HomeyMood } from '../types';
+import {
+  MCPTool, MCPToolCallResult, HomeyInstance, HomeyMood,
+} from '../types';
 import { IZoneDeviceManager } from '../interfaces';
 import { Logger } from '../utils/logger';
 
@@ -13,7 +15,7 @@ export class SetMoodTool extends BaseTool {
 
   constructor(
     private homey: HomeyInstance,
-    private zoneDeviceManager: IZoneDeviceManager
+    private zoneDeviceManager: IZoneDeviceManager,
   ) {
     super();
     this.logger = new Logger(homey, 'SetMoodTool');
@@ -66,7 +68,7 @@ EXAMPLE: "Activate the Movie Night mood"`,
       // Validate: at least one parameter required
       if (!moodId && !moodName) {
         return this.createErrorResponse(
-          new Error('Either moodId or moodName must be provided')
+          new Error('Either moodId or moodName must be provided'),
         );
       }
 
@@ -83,8 +85,8 @@ EXAMPLE: "Activate the Movie Night mood"`,
         if (!foundMood) {
           return this.createErrorResponse(
             new Error(
-              `Mood not found: "${moodName}"\n\nAvailable moods:\n${this.formatAvailableMoods(moods)}`
-            )
+              `Mood not found: "${moodName}"\n\nAvailable moods:\n${this.formatAvailableMoods(moods)}`,
+            ),
           );
         }
 
@@ -105,7 +107,7 @@ EXAMPLE: "Activate the Movie Night mood"`,
       // Activate mood using direct API
       await this.zoneDeviceManager.setMood(mood.id);
 
-      let message = `🎭 Mood Activated\n\n`;
+      let message = '🎭 Mood Activated\n\n';
       message += `Mood: ${mood.name}\n`;
       message += `Zone: ${zoneName}\n`;
       message += `Devices: ${Object.keys(mood.devices).length}`;

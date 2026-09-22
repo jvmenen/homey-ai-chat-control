@@ -36,7 +36,7 @@ module.exports = {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       homey.app.error('Failed to get local address:', error);
-      throw new Error('Failed to retrieve Homey IP address: ' + errorMessage);
+      throw new Error(`Failed to retrieve Homey IP address: ${errorMessage}`);
     }
   },
 };

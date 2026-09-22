@@ -56,7 +56,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
       const mcpCommandTrigger = this.homey.flow.getTriggerCard('ai_tool_call');
 
       // Register run listener to match flows based on command argument
-      mcpCommandTrigger.registerRunListener(async (args: any, state: any) => {
+      mcpCommandTrigger.registerRunListener(async (args, state) => {
         // args = the arguments configured in the flow (command, description, parameters)
         // state = passed when triggering (contains command to match)
         this.log(`Run listener called: flow args=${JSON.stringify(args)}, state=${JSON.stringify(state)}`);
@@ -99,7 +99,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.insightsManager = new InsightsManager(
         this.zoneDeviceManager.getHomeyApi(),
         this.zoneDeviceManager,
-        this.homey
+        this.homey,
       );
       this.log('Insights Manager initialized');
 
@@ -180,7 +180,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
           id: req.body?.id || null,
           error: {
             code: JSONRPC_ERROR_CODES.INTERNAL_ERROR,
-            message: 'Internal error: ' + errorMessage,
+            message: `Internal error: ${errorMessage}`,
           },
         });
       }

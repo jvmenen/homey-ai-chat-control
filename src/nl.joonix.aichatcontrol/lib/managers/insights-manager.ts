@@ -1,5 +1,5 @@
 import type { HomeyAPI } from 'homey-api';
-import type { ZoneDeviceManager } from './zone-device-manager.js';
+import type { ZoneDeviceManager } from './zone-device-manager';
 import type { HomeyInstance } from '../types';
 import { Logger } from '../utils/logger';
 
@@ -48,6 +48,32 @@ export type InsightResolution =
   | 'thisMonth'
   | 'thisYear';
 
+// Raw insight log shape as returned by the Homey `insights` API (not covered by the
+// `homey-api` package's own types, but present at runtime).
+interface RawInsightLog {
+  id?: string;
+  ownerUri?: string;
+  ownerId?: string;
+  title?: string;
+  type?: 'number' | 'boolean';
+  units?: string;
+  titleTrue?: string;
+  titleFalse?: string;
+  decimals?: number;
+}
+
+// Minimal shape of the `insights` sub-client used here. It exists at runtime on the
+// `HomeyAPI` instance but isn't declared by `homey-api`'s own types.
+interface HomeyInsightsClient {
+  getLogs(): Promise<Record<string, unknown>>;
+  getLog(options: { id: string }): Promise<RawInsightLog>;
+  getLogEntries(options: {
+    id: string;
+    uri: string;
+    resolution?: InsightResolution;
+  }): Promise<{ values?: unknown[] }>;
+}
+
 /**
  * Manager for Homey Insights operations
  * Handles discovery and retrieval of insight logs and their historical data
@@ -58,9 +84,14 @@ export class InsightsManager {
   constructor(
     private readonly homeyApi: HomeyAPI,
     private readonly zoneDeviceManager: ZoneDeviceManager,
-    homey: HomeyInstance
+    homey: HomeyInstance,
   ) {
     this.logger = new Logger(homey, 'InsightsManager');
+  }
+
+  // Note: insights API not in HomeyAPI type definitions, but exists at runtime
+  private get insightsApi(): HomeyInsightsClient {
+    return (this.homeyApi as unknown as { insights: HomeyInsightsClient }).insights;
   }
 
   /**
@@ -68,14 +99,13 @@ export class InsightsManager {
    */
   async getInsightsOverview(filters?: GetInsightsOverviewFilters): Promise<InsightLog[]> {
     // Get all logs from Homey API
-    // Note: insights API not in HomeyAPI type definitions, but exists at runtime
-    const logsObj = await (this.homeyApi as any).insights.getLogs();
-    const logs = Object.values(logsObj) as any[];
+    const logsObj = await this.insightsApi.getLogs();
+    const logs = Object.values(logsObj) as RawInsightLog[];
 
     // Get device and zone information for enrichment
     const homeStructure = await this.zoneDeviceManager.getHomeStructure();
-    const deviceMap = new Map(homeStructure.devices.map(d => [d.id, d]));
-    const zoneMap = new Map(homeStructure.zones.map(z => [z.id, z]));
+    const deviceMap = new Map(homeStructure.devices.map((d) => [d.id, d]));
+    const zoneMap = new Map(homeStructure.zones.map((z) => [z.id, z]));
 
     // Transform and enrich logs with device/zone information
     const enrichedLogs: InsightLog[] = [];
@@ -142,21 +172,20 @@ export class InsightsManager {
    */
   async getInsightData(
     logIds: string[],
-    resolution?: InsightResolution
+    resolution?: InsightResolution,
   ): Promise<InsightLogWithData[]> {
     const results: InsightLogWithData[] = [];
 
     for (const logId of logIds) {
       try {
         // Get the log metadata first
-        // Note: insights API not in HomeyAPI type definitions, but exists at runtime
-        const log = await (this.homeyApi as any).insights.getLog({ id: logId });
+        const log = await this.insightsApi.getLog({ id: logId });
 
         // Calculate URI (first 3 parts of the ID)
         const uri = logId.split(':', 3).join(':');
 
         // Get log entries with optional resolution
-        const entriesResponse = await (this.homeyApi as any).insights.getLogEntries({
+        const entriesResponse = await this.insightsApi.getLogEntries({
           id: logId,
           uri,
           resolution,
@@ -178,8 +207,9 @@ export class InsightsManager {
               value = entry[1];
             } else if (entry && typeof entry === 'object' && 't' in entry && 'v' in entry) {
               // Format: { t: timestamp, v: value }
-              timestamp = new Date(entry.t).toISOString();
-              value = entry.v;
+              const { t, v } = entry as { t: string | number; v: number | boolean };
+              timestamp = new Date(t).toISOString();
+              value = v;
             } else {
               // Unknown format, skip
               continue;

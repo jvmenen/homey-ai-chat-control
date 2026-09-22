@@ -37,7 +37,7 @@ export interface FlowTrigger {
   /** Full URI (e.g., 'homey:app:nl.joonix.aichatcontrol:ai_tool_call') */
   uri?: string;
   /** Trigger arguments configured by user in the flow */
-  args?: Record<string, any>;
+  args?: Record<string, unknown>;
 }
 
 /**
@@ -50,7 +50,7 @@ export interface FlowCard {
   /** Card type */
   type: 'trigger' | 'condition' | 'action';
   /** Card arguments configured by user */
-  args?: Record<string, any>;
+  args?: Record<string, unknown>;
   /** Optional card URI */
   uri?: string;
 }
@@ -67,7 +67,7 @@ export interface MCPTool {
   /** JSON Schema defining the tool's input parameters */
   inputSchema: {
     type: 'object';
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     required?: string[];
   };
 }
@@ -171,7 +171,7 @@ export interface DeviceCapability {
   /** Maximum value (for number types) */
   max?: number;
   /** Allowed values (for enum types) */
-  values?: any[];
+  values?: unknown[];
 }
 
 /**
@@ -253,5 +253,5 @@ export interface HomeyMood {
   /** Optional preset template identifier */
   preset: string | null;
   /** Device settings for this mood (device ID -> capability values) */
-  devices: Record<string, any>;
+  devices: Record<string, unknown>;
 }

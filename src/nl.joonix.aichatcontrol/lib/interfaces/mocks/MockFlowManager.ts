@@ -8,14 +8,14 @@ import { HomeyFlow, MCPTool, FlowExecutionResult } from '../../types';
 export class MockFlowManager implements IFlowManager {
   private mockFlows: HomeyFlow[] = [];
   private registeredCommands: Set<string> = new Set();
-  private triggeredCommands: Array<{ name: string; parameters?: Record<string, any> }> = [];
+  private triggeredCommands: Array<{ name: string; parameters?: Record<string, unknown> }> = [];
 
   async init(): Promise<void> {
     // Mock initialization
   }
 
   async getMCPFlows(): Promise<HomeyFlow[]> {
-    return this.mockFlows.filter(f => f.name.toLowerCase().startsWith('mcp_'));
+    return this.mockFlows.filter((f) => f.name.toLowerCase().startsWith('mcp_'));
   }
 
   async discoverMCPFlows(): Promise<
@@ -26,10 +26,10 @@ export class MockFlowManager implements IFlowManager {
       description?: string;
       parameters?: string;
     }>
-  > {
+    > {
     return this.mockFlows
-      .filter(f => f.name.toLowerCase().startsWith('mcp_'))
-      .map(f => ({
+      .filter((f) => f.name.toLowerCase().startsWith('mcp_'))
+      .map((f) => ({
         flowId: f.id,
         flowName: f.name,
         command: this.flowToToolName(f.name),
@@ -39,7 +39,7 @@ export class MockFlowManager implements IFlowManager {
 
   async getToolsFromFlows(): Promise<MCPTool[]> {
     const flows = await this.discoverMCPFlows();
-    return flows.map(f => ({
+    return flows.map((f) => ({
       name: f.command,
       description: f.description || `Trigger flow "${f.flowName}"`,
       inputSchema: {
@@ -51,7 +51,7 @@ export class MockFlowManager implements IFlowManager {
   }
 
   async getToolsFromCommands(): Promise<MCPTool[]> {
-    return Array.from(this.registeredCommands).map(cmd => ({
+    return Array.from(this.registeredCommands).map((cmd) => ({
       name: cmd,
       description: `Trigger the '${cmd}' command`,
       inputSchema: {
@@ -64,7 +64,7 @@ export class MockFlowManager implements IFlowManager {
 
   async triggerCommand(
     toolName: string,
-    parameters?: Record<string, any>
+    parameters?: Record<string, unknown>,
   ): Promise<FlowExecutionResult> {
     this.triggeredCommands.push({ name: toolName, parameters });
     this.registerCommand(toolName);
@@ -80,7 +80,7 @@ export class MockFlowManager implements IFlowManager {
   }
 
   getRegisteredCommands(): Array<{ name: string; description?: string }> {
-    return Array.from(this.registeredCommands).map(cmd => ({ name: cmd }));
+    return Array.from(this.registeredCommands).map((cmd) => ({ name: cmd }));
   }
 
   flowToToolName(flowName: string): string {
@@ -93,7 +93,7 @@ export class MockFlowManager implements IFlowManager {
 
   async getFlowByToolName(toolName: string): Promise<HomeyFlow | null> {
     const flowName = this.toolNameToFlow(toolName);
-    return this.mockFlows.find(f => f.name.toLowerCase() === flowName.toLowerCase()) || null;
+    return this.mockFlows.find((f) => f.name.toLowerCase() === flowName.toLowerCase()) || null;
   }
 
   async getFlowOverview(options?: FlowOverviewOptions): Promise<FlowOverviewData> {
@@ -102,10 +102,10 @@ export class MockFlowManager implements IFlowManager {
     // Simple mock implementation
     const enabledFlows = includeDisabled
       ? this.mockFlows
-      : this.mockFlows.filter(f => f.enabled !== false);
+      : this.mockFlows.filter((f) => f.enabled !== false);
 
     return {
-      flows: enabledFlows.map(f => ({
+      flows: enabledFlows.map((f) => ({
         id: f.id,
         name: f.name,
         enabled: f.enabled !== false,
@@ -115,11 +115,11 @@ export class MockFlowManager implements IFlowManager {
       })),
       summary: {
         total: enabledFlows.length,
-        enabled: enabledFlows.filter(f => f.enabled !== false).length,
-        disabled: enabledFlows.filter(f => f.enabled === false).length,
-        regular: enabledFlows.filter(f => !f.cards).length,
-        advanced: enabledFlows.filter(f => f.cards).length,
-        mcpFlows: enabledFlows.filter(f => f.name.toLowerCase().startsWith('mcp_')).length,
+        enabled: enabledFlows.filter((f) => f.enabled !== false).length,
+        disabled: enabledFlows.filter((f) => f.enabled === false).length,
+        regular: enabledFlows.filter((f) => !f.cards).length,
+        advanced: enabledFlows.filter((f) => f.cards).length,
+        mcpFlows: enabledFlows.filter((f) => f.name.toLowerCase().startsWith('mcp_')).length,
       },
     };
   }
@@ -129,7 +129,7 @@ export class MockFlowManager implements IFlowManager {
     this.mockFlows.push(flow);
   }
 
-  getTriggeredCommands(): Array<{ name: string; parameters?: Record<string, any> }> {
+  getTriggeredCommands(): Array<{ name: string; parameters?: Record<string, unknown> }> {
     return this.triggeredCommands;
   }
 

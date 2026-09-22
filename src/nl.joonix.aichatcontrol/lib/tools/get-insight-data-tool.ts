@@ -1,7 +1,7 @@
-import { BaseTool } from './base-tool.js';
-import type { InsightsManager, InsightResolution } from '../managers/insights-manager.js';
-import { XMLFormatter } from '../formatters/xml-formatter.js';
-import type { MCPToolCallResult, MCPTool } from '../types.js';
+import { BaseTool } from './base-tool';
+import type { InsightsManager, InsightResolution } from '../managers/insights-manager';
+import { XMLFormatter } from '../formatters/xml-formatter';
+import type { MCPToolCallResult, MCPTool } from '../types';
 
 /**
  * Arguments for get_insight_data tool
@@ -26,11 +26,11 @@ export class GetInsightDataTool extends BaseTool {
     return {
       name: 'get_insight_data',
       description:
-        'Get historical time-series data for specific insight logs. ' +
-        'Use get_insight_logs first to discover available log IDs. ' +
-        'This tool retrieves actual data points with timestamps and values, ' +
-        'allowing you to analyze trends, calculate statistics, or answer questions about past states. ' +
-        'Returns XML format with chronologically sorted entries.',
+        'Get historical time-series data for specific insight logs. '
+        + 'Use get_insight_logs first to discover available log IDs. '
+        + 'This tool retrieves actual data points with timestamps and values, '
+        + 'allowing you to analyze trends, calculate statistics, or answer questions about past states. '
+        + 'Returns XML format with chronologically sorted entries.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -38,8 +38,8 @@ export class GetInsightDataTool extends BaseTool {
             type: 'array',
             items: { type: 'string' },
             description:
-              'Array of insight log IDs to retrieve data for. Get these IDs from get_insight_logs tool. ' +
-              'Can request multiple logs at once for comparison or analysis.',
+              'Array of insight log IDs to retrieve data for. Get these IDs from get_insight_logs tool. '
+              + 'Can request multiple logs at once for comparison or analysis.',
           },
           resolution: {
             type: 'string',
@@ -56,10 +56,10 @@ export class GetInsightDataTool extends BaseTool {
               'thisYear',
             ],
             description:
-              'Optional: Time range and aggregation level. ' +
-              'Shorter periods (lastHour, last6Hours) provide more detailed data points. ' +
-              'Longer periods (last31Days, thisYear) provide aggregated/summarized data. ' +
-              'Default behavior uses maximum available resolution.',
+              'Optional: Time range and aggregation level. '
+              + 'Shorter periods (lastHour, last6Hours) provide more detailed data points. '
+              + 'Longer periods (last31Days, thisYear) provide aggregated/summarized data. '
+              + 'Default behavior uses maximum available resolution.',
           },
         },
         required: ['logIds'],
@@ -98,8 +98,7 @@ export class GetInsightDataTool extends BaseTool {
         ],
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred while retrieving insight data';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred while retrieving insight data';
 
       return {
         content: [

@@ -10,7 +10,13 @@ import { HomeyInstance } from '../types';
 import { Logger } from '../utils/logger';
 
 export class HomeyAPIManager {
-  private homeyApi!: any; // HomeyAPI types don't export all properties
+  // The `homey-api` package's types don't cover the full client surface, and this instance is
+  // the single hub consumed by many managers/tools that each use a different subset of it
+  // (zones, devices, flow, moods, logic, ...). Each consumer declares its own minimal local
+  // type for the part it uses (see e.g. HomeyApiClient in flow-manager.ts) instead of this
+  // hub trying to describe the whole third-party surface.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private homeyApi!: any;
   private initialized = false;
   private isDestroying = false;
   private logger: Logger;
@@ -42,6 +48,7 @@ export class HomeyAPIManager {
 
     try {
       this.logger.log('Initializing Homey API...');
+      // eslint-disable-next-line global-require -- intentional lazy require so this only loads when initialize() runs
       const { HomeyAPI } = require('homey-api');
 
       this.homeyApi = await HomeyAPI.createAppAPI({
@@ -81,6 +88,7 @@ export class HomeyAPIManager {
    * Get the Homey API instance
    * @throws Error if not initialized
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see field comment above; callers each type this to the subset they use
   getApi(): any {
     if (!this.initialized) {
       throw new Error('HomeyAPIManager not initialized - call init() first');

@@ -28,7 +28,7 @@ export class UseToolTool extends BaseTool {
   constructor(
     private homey: HomeyInstance,
     private toolRegistry: ToolRegistry,
-    private flowManager?: FlowManager
+    private flowManager?: FlowManager,
   ) {
     super();
     this.logger = new Logger(homey, 'UseToolTool');
@@ -38,34 +38,34 @@ export class UseToolTool extends BaseTool {
     return {
       name: 'use_tool',
       description:
-        'Execute a discovered tool by name. Use search_tools first to find available tools, ' +
-        'then use this to execute them with the required arguments. ' +
-        '\n\n' +
-        'WORKFLOW:\n' +
-        '1. Use search_tools to discover available tools\n' +
-        '2. Use use_tool to execute the tool with appropriate arguments\n' +
-        '\n' +
-        'EXAMPLES:\n' +
-        '• Control a light:\n' +
-        '  use_tool({\n' +
-        '    name: "set_light",\n' +
-        '    arguments: { deviceId: "abc123", state: "on", dim: 75 }\n' +
-        '  })\n' +
-        '\n' +
-        '• Get insight data:\n' +
-        '  use_tool({\n' +
-        '    name: "get_insight_data",\n' +
-        '    arguments: { logIds: ["log1"], resolution: "last24Hours" }\n' +
-        '  })\n' +
-        '\n' +
-        '• Trigger a flow:\n' +
-        '  use_tool({\n' +
-        '    name: "trigger_any_flow",\n' +
-        '    arguments: { command: "bedtime", parameters: {} }\n' +
-        '  })\n' +
-        '\n' +
-        'NOTE: Core tools (get_home_structure, get_states, get_flow_overview) ' +
-        'can be called directly without use_tool.',
+        'Execute a discovered tool by name. Use search_tools first to find available tools, '
+        + 'then use this to execute them with the required arguments. '
+        + '\n\n'
+        + 'WORKFLOW:\n'
+        + '1. Use search_tools to discover available tools\n'
+        + '2. Use use_tool to execute the tool with appropriate arguments\n'
+        + '\n'
+        + 'EXAMPLES:\n'
+        + '• Control a light:\n'
+        + '  use_tool({\n'
+        + '    name: "set_light",\n'
+        + '    arguments: { deviceId: "abc123", state: "on", dim: 75 }\n'
+        + '  })\n'
+        + '\n'
+        + '• Get insight data:\n'
+        + '  use_tool({\n'
+        + '    name: "get_insight_data",\n'
+        + '    arguments: { logIds: ["log1"], resolution: "last24Hours" }\n'
+        + '  })\n'
+        + '\n'
+        + '• Trigger a flow:\n'
+        + '  use_tool({\n'
+        + '    name: "trigger_any_flow",\n'
+        + '    arguments: { command: "bedtime", parameters: {} }\n'
+        + '  })\n'
+        + '\n'
+        + 'NOTE: Core tools (get_home_structure, get_states, get_flow_overview) '
+        + 'can be called directly without use_tool.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -76,8 +76,8 @@ export class UseToolTool extends BaseTool {
           arguments: {
             type: 'object',
             description:
-              'Tool-specific arguments as a JSON object. ' +
-              'Check search_tools results for required parameters (deviceId, zoneId, etc.)',
+              'Tool-specific arguments as a JSON object. '
+              + 'Check search_tools results for required parameters (deviceId, zoneId, etc.)',
           },
         },
         required: ['name', 'arguments'],
@@ -118,27 +118,27 @@ export class UseToolTool extends BaseTool {
 
         if (missingParams.length > 0) {
           return this.createErrorResponse(
-            `Missing required parameters for '${toolName}': ${missingParams.join(', ')}\n\n` +
-              `Tool description: ${metadata.shortDescription}\n` +
-              `Required: ${missingParams.join(', ')}`
+            `Missing required parameters for '${toolName}': ${missingParams.join(', ')}\n\n`
+              + `Tool description: ${metadata.shortDescription}\n`
+              + `Required: ${missingParams.join(', ')}`,
           );
         }
 
         // Delegate to tool registry
-        this.logger.log(`   → Delegating to tool registry for execution`);
+        this.logger.log('   → Delegating to tool registry for execution');
         const result = await this.toolRegistry.execute(toolName, toolArgs);
 
-        this.logger.log(`   ✓ Tool execution completed`);
+        this.logger.log('   ✓ Tool execution completed');
         return result;
       }
 
       // Not in static metadata - check if it's a flow-based tool
       if (this.flowManager) {
-        this.logger.log(`   → Not found in static metadata, checking flow-based tools...`);
+        this.logger.log('   → Not found in static metadata, checking flow-based tools...');
 
         try {
           const flowTools = await this.flowManager.getToolsFromFlows();
-          const flowTool = flowTools.find(tool => tool.name === toolName);
+          const flowTool = flowTools.find((tool) => tool.name === toolName);
 
           if (flowTool) {
             this.logger.log(`   → Found flow-based tool: ${toolName}`);
@@ -150,7 +150,7 @@ export class UseToolTool extends BaseTool {
               parameters: toolArgs,
             });
 
-            this.logger.log(`   ✓ Flow-based tool execution completed`);
+            this.logger.log('   ✓ Flow-based tool execution completed');
             return result;
           }
         } catch (error) {
@@ -161,8 +161,8 @@ export class UseToolTool extends BaseTool {
 
       // Tool not found in either static metadata or flow-based tools
       return this.createErrorResponse(
-        `Tool '${toolName}' not found. Use search_tools to discover available tools.\n\n` +
-          'Example: search_tools({ query: "lights" })'
+        `Tool '${toolName}' not found. Use search_tools to discover available tools.\n\n`
+          + 'Example: search_tools({ query: "lights" })',
       );
     } catch (error) {
       this.logger.error('Error in use_tool:', error);

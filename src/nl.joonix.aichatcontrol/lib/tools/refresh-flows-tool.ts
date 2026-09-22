@@ -19,7 +19,7 @@ export class RefreshFlowsTool extends BaseTool {
   constructor(
     private homey: HomeyInstance,
     private flowManager: IFlowManager,
-    private toolStateManager: ToolStateManager
+    private toolStateManager: ToolStateManager,
   ) {
     super();
     this.logger = new Logger(homey, 'RefreshFlowsTool');
@@ -65,29 +65,36 @@ OUTPUT: Shows all discovered flows with their commands and parameters.`,
       this.toolStateManager.setToolsList(newToolsList);
       const toolCount = flowTools.length;
 
-      let message = `✅ Flow refresh complete!\n\n`;
+      let message = '✅ Flow refresh complete!\n\n';
       message += `Found ${toolCount} flow(s) with MCP triggers.\n\n`;
 
       if (changed) {
-        message += `🔄 Changes detected! New flows are available.\n\n`;
-        message += `✅ WORKAROUND: You can trigger these flows RIGHT NOW using the 'trigger_any_flow' tool!\n`;
-        message += `Just use trigger_any_flow with the command name and parameters shown below.\n\n`;
-        message += `Note: To see them as dedicated tools in future chats, start a new chat session.`;
+        message += '🔄 Changes detected! New flows are available.\n\n';
+        message += '✅ WORKAROUND: You can trigger these flows RIGHT NOW using the \'trigger_any_flow\' tool!\n';
+        message += 'Just use trigger_any_flow with the command name and parameters shown below.\n\n';
+        message += 'Note: To see them as dedicated tools in future chats, start a new chat session.';
       } else {
-        message += `ℹ️ No changes detected. Tool list is up to date.`;
+        message += 'ℹ️ No changes detected. Tool list is up to date.';
       }
 
       if (toolCount > 0) {
-        message += `\n\nFlows found on server:\n`;
+        message += '\n\nFlows found on server:\n';
         flowTools.forEach((tool, index) => {
           message += `\n${index + 1}. ${tool.name}\n`;
           message += `   Description: ${tool.description}\n`;
 
           // Show parameter details if available
-          const schema = tool.inputSchema as any;
+          const schema = tool.inputSchema;
           if (schema?.properties && Object.keys(schema.properties).length > 0) {
-            message += `   Parameters:\n`;
-            Object.entries(schema.properties).forEach(([paramName, paramDef]: [string, any]) => {
+            message += '   Parameters:\n';
+            Object.entries(schema.properties).forEach(([paramName, paramDefValue]) => {
+              const paramDef = paramDefValue as {
+                type?: string;
+                description?: string;
+                enum?: string[];
+                minimum?: number;
+                maximum?: number;
+              };
               const isRequired = schema.required?.includes(paramName);
               const requiredMarker = isRequired ? '(required)' : '(optional)';
               message += `     - ${paramName}: ${paramDef.type} ${requiredMarker}`;
@@ -100,7 +107,7 @@ OUTPUT: Shows all discovered flows with their commands and parameters.`,
               if (paramDef.minimum !== undefined || paramDef.maximum !== undefined) {
                 message += ` [${paramDef.minimum || '?'}-${paramDef.maximum || '?'}]`;
               }
-              message += `\n`;
+              message += '\n';
             });
           }
         });

@@ -47,7 +47,7 @@ export interface IFlowManager {
    */
   triggerCommand(
     toolName: string,
-    parameters?: Record<string, any>
+    parameters?: Record<string, unknown>
   ): Promise<FlowExecutionResult>;
 
   /**
@@ -90,10 +90,10 @@ export interface IFlowManager {
  * Options for filtering flow overview
  */
 export interface FlowOverviewOptions {
-  includeDisabled?: boolean;  // Include disabled flows (default: false)
-  deviceIds?: string[];       // Filter by device IDs (OR logic - any match)
-  folderPaths?: string[];     // Filter by folder paths (OR logic - any match)
-  appIds?: string[];          // Filter by app IDs (OR logic - any match)
+  includeDisabled?: boolean; // Include disabled flows (default: false)
+  deviceIds?: string[]; // Filter by device IDs (OR logic - any match)
+  folderPaths?: string[]; // Filter by folder paths (OR logic - any match)
+  appIds?: string[]; // Filter by app IDs (OR logic - any match)
 }
 
 /**

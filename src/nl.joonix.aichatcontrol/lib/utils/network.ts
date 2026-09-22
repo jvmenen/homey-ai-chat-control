@@ -17,7 +17,7 @@ export async function getLocalIpAddress(homey: HomeyInstance): Promise<string | 
 
     // Remove port from IP address if present (getLocalAddress may return IP:port)
     return localAddress.split(':')[0];
-  } catch (error) {
+  } catch {
     return null;
   }
 }
