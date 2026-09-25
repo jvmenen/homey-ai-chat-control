@@ -1,6 +1,6 @@
 import { BaseTool } from './base-tool';
 import type { InsightsManager, InsightResolution } from '../managers/insights-manager';
-import { XMLFormatter } from '../formatters/xml-formatter';
+import { formatInsightData } from '../formatters/insights-formatter';
 import type { MCPToolCallResult, MCPTool } from '../types';
 
 /**
@@ -87,7 +87,7 @@ export class GetInsightDataTool extends BaseTool {
       const data = await this.insightsManager.getInsightData(typedArgs.logIds, typedArgs.resolution);
 
       // Format as XML
-      const xmlOutput = XMLFormatter.formatInsightData(data, typedArgs.resolution);
+      const xmlOutput = formatInsightData(data, typedArgs.resolution);
 
       return {
         content: [

@@ -7,7 +7,7 @@ import {
   MCPTool, MCPToolCallResult, HomeyInstance, HomeyDevice,
 } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
-import { XMLFormatter } from '../formatters/xml-formatter';
+import { formatDeviceInMoods } from '../formatters/moods-formatter';
 import { Logger } from '../utils/logger';
 
 export class FindDeviceInMoodsTool extends BaseTool {
@@ -142,7 +142,7 @@ EXAMPLE: "Is my bedroom light in any moods?"`,
       }
 
       // Format output
-      const formattedOutput = XMLFormatter.formatDeviceInMoods(
+      const formattedOutput = formatDeviceInMoods(
         targetDeviceId!,
         deviceDisplayName,
         moodsWithDevice,

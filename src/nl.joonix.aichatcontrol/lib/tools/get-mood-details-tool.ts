@@ -7,7 +7,7 @@ import {
   MCPTool, MCPToolCallResult, HomeyInstance, HomeyMood,
 } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
-import { XMLFormatter } from '../formatters/xml-formatter';
+import { formatMoodDetails } from '../formatters/moods-formatter';
 import { Logger } from '../utils/logger';
 
 export class GetMoodDetailsTool extends BaseTool {
@@ -149,7 +149,7 @@ EXAMPLE: "Show me the 'Movie Night' mood configuration"`,
 
       // Format output
       try {
-        const formattedOutput = XMLFormatter.formatMoodDetails(mood, deviceDetails, zoneName);
+        const formattedOutput = formatMoodDetails(mood, deviceDetails, zoneName);
         this.logger.log(`✅ Successfully formatted mood details (${formattedOutput.length} chars)`);
         return this.createSuccessResponse(formattedOutput);
       } catch (formatError) {

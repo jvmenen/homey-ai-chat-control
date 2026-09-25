@@ -1,6 +1,6 @@
 import { BaseTool } from './base-tool';
 import type { InsightsManager } from '../managers/insights-manager';
-import { XMLFormatter } from '../formatters/xml-formatter';
+import { formatInsightLogs } from '../formatters/insights-formatter';
 import type { MCPToolCallResult, MCPTool } from '../types';
 
 /**
@@ -67,7 +67,7 @@ export class GetInsightLogsTool extends BaseTool {
       });
 
       // Format as XML
-      const xmlOutput = XMLFormatter.formatInsightLogs(logs);
+      const xmlOutput = formatInsightLogs(logs);
 
       return {
         content: [

@@ -5,6 +5,8 @@
     "outDir": ".homeybuild/"
   },
   "exclude": [
-    "test-phase1.ts"
+    "test-phase1.ts",
+    "test",
+    ".test-build"
   ]
 }

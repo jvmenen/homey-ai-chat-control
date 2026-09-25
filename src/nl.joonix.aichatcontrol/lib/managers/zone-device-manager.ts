@@ -21,8 +21,9 @@ import {
   CapabilityValueError,
   HomeyMCPError,
 } from '../utils/errors';
-import { IZoneDeviceManager } from '../interfaces';
+import { IZoneDeviceManager, DeviceStatesResult } from '../interfaces';
 import { Logger } from '../utils/logger';
+import { toEpochMs } from '../utils/time';
 
 // Type for Homey API device/zone objects (simplified interface)
 interface HomeyAPIDevice {
@@ -241,6 +242,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
               setable: capObj.setable,
               min: capObj.min,
               max: capObj.max,
+              lastUpdated: capObj.lastUpdated as number | string | Date | undefined,
             };
           }
         }
@@ -755,21 +757,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
     zoneId?: string;
     deviceIds?: string[];
     capability?: string;
-  }): Promise<{
-    devices: Array<{
-      id: string;
-      name: string;
-      zone: string;
-      class: string;
-      capabilities: Record<string, unknown>;
-    }>;
-    activeZones?: Array<{
-      id: string;
-      name: string;
-      active: boolean;
-      activeOrigins: string[];
-    }>;
-  }> {
+  }): Promise<DeviceStatesResult> {
 
     try {
       // Get devices based on filters
@@ -799,6 +787,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       const deviceStates = await Promise.all(
         devices.map(async (device) => {
           const capabilities: Record<string, unknown> = {};
+          const capabilityUpdated: Record<string, number> = {};
 
           // Determine which capabilities to read
           const capsToRead = filters?.capability
@@ -811,6 +800,8 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
               const capObj = device.capabilitiesObj[cap];
               if (capObj && capObj.getable) {
                 capabilities[cap] = capObj.value;
+                const updated = toEpochMs(capObj.lastUpdated);
+                if (updated !== null) capabilityUpdated[cap] = updated;
               }
             } catch (error) {
               this.logger.error(`Failed to read ${cap} from ${device.name}:`, error);
@@ -824,6 +815,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
             zone: device.zone,
             class: device.class,
             capabilities,
+            capabilityUpdated,
           };
         }),
       );

@@ -172,6 +172,8 @@ export interface DeviceCapability {
   max?: number;
   /** Allowed values (for enum types) */
   values?: unknown[];
+  /** When Homey last received a value for this capability (epoch ms or ISO string) */
+  lastUpdated?: number | string | Date;
 }
 
 /**

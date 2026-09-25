@@ -17,4 +17,6 @@ export {
   FlowCardInfo,
   FlowOverviewOptions,
 } from './IFlowManager';
-export { IZoneDeviceManager } from './IZoneDeviceManager';
+export {
+  IZoneDeviceManager, DeviceState, ActiveZoneState, DeviceStatesResult,
+} from './IZoneDeviceManager';

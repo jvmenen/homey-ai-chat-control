@@ -63,6 +63,9 @@ The documentation includes:
 - **AI-Powered Queries** - Ask intelligent questions about your home
 - **Custom AI Tools** - Create Flow triggers that appear as tools to Claude
 - **Installed Apps Discovery** - View all apps and their capabilities
+- **Zigbee Diagnostics** - See routers, routes, last-seen times and error rates to troubleshoot dropping sensors (the network key is never shared)
+- **Homey Health** - Reboot reason, memory, storage, Wi-Fi and crashed apps to explain restarts and slowness
+- **Silent Device Detection** - Find sensors that stopped reporting, with the time each value was last received
 - **Local & Secure** - All communication stays on your local network
 - **MCP Standard** - Compatible with any MCP-enabled AI assistant
 

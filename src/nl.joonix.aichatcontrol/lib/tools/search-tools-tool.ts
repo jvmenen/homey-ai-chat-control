@@ -14,7 +14,7 @@ import { Logger } from '../utils/logger';
  */
 export interface SearchToolsArgs {
   query: string;
-  category?: 'core' | 'control' | 'query' | 'insights' | 'flows' | 'apps';
+  category?: 'core' | 'control' | 'query' | 'insights' | 'flows' | 'apps' | 'diagnostics';
 }
 
 /**
@@ -76,10 +76,10 @@ export class SearchToolsTool extends BaseTool {
           },
           category: {
             type: 'string',
-            enum: ['core', 'control', 'query', 'insights', 'flows', 'apps'],
+            enum: ['core', 'control', 'query', 'insights', 'flows', 'apps', 'diagnostics'],
             description:
               'Optional: Filter by tool category. '
-              + 'control=device/zone control, insights=historical data, flows=automation.',
+              + 'control=device/zone control, insights=historical data, flows=automation, diagnostics=troubleshooting (Zigbee, Homey health).',
           },
         },
         required: ['query'],

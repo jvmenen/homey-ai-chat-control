@@ -2,7 +2,7 @@
  * MockZoneDeviceManager - Mock implementation for testing
  */
 
-import { IZoneDeviceManager } from '../IZoneDeviceManager';
+import { IZoneDeviceManager, DeviceStatesResult } from '../IZoneDeviceManager';
 import {
   HomeyZone, HomeyDevice, ZoneHierarchy, ZoneTemperatureResult, HomeyMood,
 } from '../../types';
@@ -165,21 +165,7 @@ export class MockZoneDeviceManager implements IZoneDeviceManager {
     zoneId?: string;
     deviceIds?: string[];
     capability?: string;
-  }): Promise<{
-    devices: Array<{
-      id: string;
-      name: string;
-      zone: string;
-      class: string;
-      capabilities: Record<string, unknown>;
-    }>;
-    activeZones?: Array<{
-      id: string;
-      name: string;
-      active: boolean;
-      activeOrigins: string[];
-    }>;
-  }> {
+  }): Promise<DeviceStatesResult> {
     let devices = this.mockDevices;
 
     if (filters?.zoneId) {

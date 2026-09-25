@@ -7,7 +7,7 @@
 
 export interface ToolMetadata {
   name: string;
-  category: 'core' | 'control' | 'query' | 'insights' | 'flows' | 'apps';
+  category: 'core' | 'control' | 'query' | 'insights' | 'flows' | 'apps' | 'diagnostics';
   shortDescription: string;
   tags: string[];
   requiresDeviceId?: boolean;
@@ -149,6 +149,28 @@ export const TOOL_METADATA: Record<string, ToolMetadata> = {
     category: 'query',
     shortDescription: 'Get all Homey Logic variables with current values',
     tags: ['logic', 'variables', 'thresholds', 'flags', 'counters', 'values'],
+  },
+
+  // ===== DIAGNOSTICS TOOLS =====
+  get_zigbee_network: {
+    name: 'get_zigbee_network',
+    category: 'diagnostics',
+    shortDescription: 'Diagnose the Zigbee mesh: routers, routes, last seen, error rates per device',
+    tags: [
+      'zigbee', 'mesh', 'network', 'diagnostics', 'troubleshooting', 'router', 'routers', 'route',
+      'connection', 'offline', 'unresponsive', 'unreachable', 'dropout', 'lastseen', 'errors', 'signal',
+      'sensor', 'contact', 'door', 'battery',
+    ],
+  },
+
+  get_homey_system_health: {
+    name: 'get_homey_system_health',
+    category: 'diagnostics',
+    shortDescription: 'Homey hub health: reboot reason, uptime, memory, storage, Wi-Fi, crashed apps and app memory use',
+    tags: [
+      'system', 'health', 'diagnostics', 'troubleshooting', 'reboot', 'restart', 'uptime', 'memory', 'storage',
+      'cpu', 'temperature', 'wifi', 'ethernet', 'apps', 'crash', 'crashed', 'slow', 'performance', 'hub',
+    ],
   },
 
   // NOTE: trigger_any_flow is NOT in metadata - it's internal only

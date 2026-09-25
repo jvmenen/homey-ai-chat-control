@@ -4,11 +4,20 @@
     "import/resolver": {
       "typescript": {},
       "node": {
-        "extensions": [".js", ".ts", ".json"]
+        "extensions": [
+          ".js",
+          ".ts",
+          ".json"
+        ]
       }
     },
     "node": {
-      "tryExtensions": [".js", ".ts", ".json", ".node"]
+      "tryExtensions": [
+        ".js",
+        ".ts",
+        ".json",
+        ".node"
+      ]
     }
   },
   "rules": {
@@ -16,7 +25,11 @@
     "no-use-before-define": "off",
     "@typescript-eslint/no-use-before-define": [
       "error",
-      { "ignoreTypeReferences": true, "functions": false, "classes": false }
+      {
+        "ignoreTypeReferences": true,
+        "functions": false,
+        "classes": false
+      }
     ],
     "import/extensions": [
       "error",
@@ -31,11 +44,27 @@
   },
   "overrides": [
     {
-      "files": ["api.ts", "app.ts"],
+      "files": [
+        "api.ts",
+        "app.ts"
+      ],
       "rules": {
         "import/no-import-module-exports": "off"
       }
+    },
+    {
+      "files": [
+        "test/**/*.ts"
+      ],
+      "parserOptions": {
+        "project": "./tsconfig.test.json"
+      },
+      "rules": {
+        "@typescript-eslint/no-floating-promises": "off"
+      }
     }
   ],
-  "ignorePatterns": ["test-phase1.ts"]
+  "ignorePatterns": [
+    "test-phase1.ts"
+  ]
 }

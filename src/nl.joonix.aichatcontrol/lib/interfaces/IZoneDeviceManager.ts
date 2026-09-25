@@ -17,6 +17,29 @@ import {
   HomeyMood,
 } from '../types';
 
+/** Current values of one device, as returned by getStates() */
+export interface DeviceState {
+  id: string;
+  name: string;
+  zone: string;
+  class: string;
+  capabilities: Record<string, unknown>;
+  /** When Homey last received each capability value (epoch ms) */
+  capabilityUpdated?: Record<string, number>;
+}
+
+export interface ActiveZoneState {
+  id: string;
+  name: string;
+  active: boolean;
+  activeOrigins: string[];
+}
+
+export interface DeviceStatesResult {
+  devices: DeviceState[];
+  activeZones?: ActiveZoneState[];
+}
+
 export interface IZoneDeviceManager {
   // ============================================================================
   // LIFECYCLE
@@ -191,21 +214,7 @@ export interface IZoneDeviceManager {
     zoneId?: string;
     deviceIds?: string[];
     capability?: string;
-  }): Promise<{
-    devices: Array<{
-      id: string;
-      name: string;
-      zone: string;
-      class: string;
-      capabilities: Record<string, unknown>;
-    }>;
-    activeZones?: Array<{
-      id: string;
-      name: string;
-      active: boolean;
-      activeOrigins: string[];
-    }>;
-  }>;
+  }): Promise<DeviceStatesResult>;
 
   // ============================================================================
   // MOOD OPERATIONS (Read-only)

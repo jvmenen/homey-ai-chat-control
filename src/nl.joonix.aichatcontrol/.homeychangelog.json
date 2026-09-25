@@ -26,5 +26,9 @@
   "3.0.1": {
     "en": "Technical update: upgraded dependencies (Node/TypeScript/ESLint toolchain) and cleaned up code quality. No functional changes.",
     "nl": "Technische update: dependencies bijgewerkt en codekwaliteit verbeterd. Geen functionele wijzigingen."
+  },
+  "4.0.0": {
+    "en": "New diagnostics tools. Zigbee network: see which devices are routers, via which routers each device is connected, when devices were last seen and how many transmissions fail (the Zigbee network key is never shared with the AI). Homey health: last reboot and its reason, memory, storage, Wi-Fi band and signal, and per app whether it crashed and how much memory it uses. Device states can now include when each value was last received, and can list devices that have gone silent, to find dead or disconnected sensors. Device states are now about 45% more compact, so the AI can look at your whole home at once with room to spare.",
+    "nl": "Nieuwe diagnosetools. Zigbee-netwerk: zie welke apparaten routers zijn, via welke routers elk apparaat verbonden is, wanneer apparaten voor het laatst gezien zijn en hoeveel verzendingen mislukken (de Zigbee-netwerksleutel wordt nooit met de AI gedeeld). Homey-gezondheid: laatste herstart en de reden, geheugen, opslag, wifi-band en signaal, en per app of die gecrasht is en hoeveel geheugen hij gebruikt. Apparaatstatussen kunnen nu tonen wanneer elke waarde voor het laatst binnenkwam, en apparaten opsommen die stil zijn gevallen, om dode of losgekoppelde sensoren te vinden. Apparaatstatussen zijn nu zo'n 45% compacter, zodat de AI je hele huis in één keer kan bekijken en nog ruimte overhoudt."
   }
 }

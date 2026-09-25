@@ -5,7 +5,7 @@
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IZoneDeviceManager } from '../interfaces';
-import { XMLFormatter } from '../formatters/xml-formatter';
+import { formatHomeStructure } from '../formatters/home-structure-formatter';
 import { Logger } from '../utils/logger';
 
 /**
@@ -58,7 +58,7 @@ BEST PRACTICE: Call get_home_structure first, then use get_states to get current
       this.logger.log('🏠 Getting complete home structure (static data)');
 
       const structure = await this.zoneDeviceManager.getHomeStructure();
-      const formattedXML = XMLFormatter.formatHomeStructure(structure);
+      const formattedXML = formatHomeStructure(structure);
 
       return this.createSuccessResponse(formattedXML);
     } catch (error) {

@@ -10,7 +10,7 @@ import { BaseTool } from './base-tool';
 import {
   MCPTool, MCPToolCallResult, HomeyInstance, LogicVariable,
 } from '../types';
-import { XMLFormatter } from '../formatters/xml-formatter';
+import { formatLogicVariables } from '../formatters/logic-variables-formatter';
 import { Logger } from '../utils/logger';
 
 // Raw logic variable shape as returned by the Homey `logic` API
@@ -150,7 +150,7 @@ EXAMPLE: "Show me all lux-related variables" → search_name: "lux"`,
       // Sort by name for consistent output
       variables.sort((a, b) => a.name.localeCompare(b.name));
 
-      const output = XMLFormatter.formatLogicVariables(variables, { filterType, searchName });
+      const output = formatLogicVariables(variables, { filterType, searchName });
       return this.createSuccessResponse(output);
     } catch (error) {
       this.logger.error('Error getting logic variables:', error);

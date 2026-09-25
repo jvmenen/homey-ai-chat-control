@@ -5,7 +5,7 @@
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { IFlowManager } from '../interfaces';
-import { XMLFormatter } from '../formatters/xml-formatter';
+import { formatFlowOverview } from '../formatters/flow-overview-formatter';
 import { Logger } from '../utils/logger';
 
 /**
@@ -103,7 +103,7 @@ BEST PRACTICE: Use together with get_home_structure to cross-reference device ID
         appIds,
       });
 
-      const formattedXML = XMLFormatter.formatFlowOverview(overview);
+      const formattedXML = formatFlowOverview(overview);
 
       return this.createSuccessResponse(formattedXML);
     } catch (error) {
