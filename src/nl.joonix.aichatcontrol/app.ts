@@ -1,16 +1,15 @@
 'use strict';
 
 import Homey from 'homey';
-import express from 'express';
 import { Server } from 'http';
 import { HomeyAPIManager } from './lib/managers/homey-api-manager';
 import { FlowManager } from './lib/managers/flow-manager';
 import { ZoneDeviceManager } from './lib/managers/zone-device-manager';
 import { InsightsManager } from './lib/managers/insights-manager';
 import { ToolRegistry } from './lib/tools/tool-registry';
-import { MCPServerManager } from './lib/managers/mcp-server-manager';
+import { MCPServerManager, MCPRequest } from './lib/managers/mcp-server-manager';
 import { ToolStateManager } from './lib/managers/tool-state-manager';
-import { MCP_SERVER_CONFIG, JSONRPC_ERROR_CODES } from './lib/constants';
+import { MCP_SERVER_CONFIG } from './lib/constants';
 import { TriggerAnyFlowTool } from './lib/tools/trigger-any-flow-tool';
 import { HomeStructureTool } from './lib/tools/home-structure-tool';
 import { RefreshFlowsTool } from './lib/tools/refresh-flows-tool';
@@ -35,6 +34,7 @@ import { GetZigbeeNetworkTool } from './lib/tools/get-zigbee-network-tool';
 import { GetHomeySystemHealthTool } from './lib/tools/get-homey-system-health-tool';
 import { normalizeCommandName } from './lib/parsers/flow-parser';
 import { getLocalIpAddress } from './lib/utils/network';
+import { createMcpHttpServer } from './lib/server/mcp-http-server';
 
 module.exports = class HomeyMCPApp extends Homey.App {
   private httpServer!: Server;
@@ -164,32 +164,10 @@ module.exports = class HomeyMCPApp extends Homey.App {
       throw error;
     }
 
-    // Create Express app for HTTP endpoints
-    const app = express();
-    app.use(express.json());
-
-    // Health check endpoint
-    app.get('/health', (req, res) => {
-      res.json({ status: 'ok', message: 'Homey MCP Server is running' });
-    });
-
-    // Main MCP endpoint
-    app.post('/mcp', async (req, res) => {
-      try {
-        const response = await this.mcpServerManager.handleRequest(req.body);
-        res.json(response);
-      } catch (error) {
-        this.error('MCP request error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({
-          jsonrpc: '2.0',
-          id: req.body?.id || null,
-          error: {
-            code: JSONRPC_ERROR_CODES.INTERNAL_ERROR,
-            message: `Internal error: ${errorMessage}`,
-          },
-        });
-      }
+    // HTTP server with GET /health and POST /mcp
+    this.httpServer = createMcpHttpServer({
+      handleMcpRequest: (request) => this.mcpServerManager.handleRequest(request as MCPRequest),
+      onError: (message, error) => this.error(message, error),
     });
 
     // Start HTTP server, bind to all interfaces
@@ -202,7 +180,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
       this.error('Failed to get local IP address - MCP URL will not be shown correctly');
     }
 
-    this.httpServer = app.listen(port, host, () => {
+    this.httpServer.listen(port, host, () => {
       this.log(`✓ MCP Server listening on port ${port} (all network interfaces)`);
       this.log(`✓ MCP Server URL: http://${localIp || '<homey-ip>'}:${port}/mcp`);
       this.log(`✓ Health check URL: http://${localIp || '<homey-ip>'}:${port}/health`);

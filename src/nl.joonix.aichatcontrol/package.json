@@ -11,7 +11,6 @@
   },
   "devDependencies": {
     "@tsconfig/node16": "^16.1.9",
-    "@types/express": "^5.0.6",
     "@types/homey": "npm:homey-apps-sdk-v3-types@^0.3.12",
     "@types/node": "^26.6.2",
     "@typescript-eslint/eslint-plugin": "^8.70.1",
@@ -22,7 +21,6 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "express": "^5.2.1",
     "homey-api": "^3.20.0"
   }
 }

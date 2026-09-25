@@ -1,3 +1,4 @@
 test/
 .test-build/
 tsconfig.test.json
+package-lock.json
