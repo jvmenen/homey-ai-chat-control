@@ -38,5 +38,9 @@
   "4.0.2": {
     "en": "Lighter app: it now talks to Homey directly instead of through the homey-api library. The app uses about 20% less memory and its package is a quarter of the size. No functional changes.",
     "nl": "Lichtere app: de app praat nu rechtstreeks met Homey in plaats van via de homey-api-bibliotheek. De app gebruikt zo'n 20% minder geheugen en het pakket is een kwart zo groot. Geen functionele wijzigingen."
+  },
+  "4.0.3": {
+    "en": "Updated app description: newest release notes first, and the lighter app is mentioned. No functional changes.",
+    "nl": "Bijgewerkte appbeschrijving: nieuwste release notes bovenaan en de lichtere app wordt genoemd. Geen functionele wijzigingen."
   }
 }
