@@ -42,5 +42,9 @@
   "4.0.3": {
     "en": "Updated app description: newest release notes first, and the lighter app is mentioned. No functional changes.",
     "nl": "Bijgewerkte appbeschrijving: nieuwste release notes bovenaan en de lichtere app wordt genoemd. Geen functionele wijzigingen."
+  },
+  "4.0.4": {
+    "en": "Logic variables are read directly, without a workaround. No functional changes.",
+    "nl": "Logicavariabelen worden rechtstreeks gelezen, zonder omweg. Geen functionele wijzigingen."
   }
 }

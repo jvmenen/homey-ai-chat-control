@@ -136,7 +136,6 @@ export class HomeyRestClient {
 
   readonly logic = {
     getVariables: <T = JsonObject>(): Promise<Record<string, T>> => this.get('logic', '/variable'),
-    getState: <T = JsonObject>(): Promise<T> => this.get('logic', '/state'),
   };
 
   readonly apps = {

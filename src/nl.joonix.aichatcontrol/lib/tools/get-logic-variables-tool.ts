@@ -1,9 +1,7 @@
 /**
  * Get Logic Variables Tool - Retrieve Homey Logic variables
  *
- * Note: Uses logic.getState() (requires homey.system.readonly) instead of
- * logic.getVariables() (requires homey.logic.readonly) because the latter
- * scope is not available to apps via createAppAPI.
+ * Apps have the homey.logic.readonly scope, so the variables are read directly.
  */
 
 import { BaseTool } from './base-tool';
@@ -25,61 +23,17 @@ interface RawLogicVariable {
 export interface HomeyLogicApiClient {
   logic: {
     getVariables(): Promise<Record<string, RawLogicVariable>>;
-    getState(): Promise<Record<string, unknown>>;
   };
 }
 
-function isRawLogicVariable(value: unknown): value is RawLogicVariable {
-  if (!value || typeof value !== 'object') return false;
-  const v = value as Partial<RawLogicVariable>;
-  return Boolean(v.id) && Boolean(v.name) && v.type !== undefined;
-}
-
-/**
- * Helper to fetch logic variables using getState() fallback
- * getVariables() requires homey.logic.readonly which isn't available to apps.
- * getState() requires homey.system.readonly which IS available.
- */
-export async function fetchLogicVariables(
-  homeyApi: HomeyLogicApiClient,
-  logger: Logger,
-): Promise<LogicVariable[]> {
-  try {
-    // Try getVariables() first (requires homey.logic.readonly)
-    const variablesObj = await homeyApi.logic.getVariables();
-    return Object.values(variablesObj).map((v) => ({
-      id: v.id,
-      name: v.name,
-      type: v.type,
-      value: v.value,
-    }));
-  } catch (error) {
-    // If scope error, fall back to getState() (requires homey.system.readonly)
-    const err = error as { statusCode?: number; message?: string } | undefined;
-    if (err?.statusCode === 403 || err?.message?.includes('Missing Scopes')) {
-      logger.log('getVariables() failed with scope error, falling back to getState()');
-      const state = await homeyApi.logic.getState();
-
-      // getState() returns the manager state which may contain variables
-      if (state && typeof state === 'object') {
-        // The state object may have a 'variable' key with all variables
-        const variablesObj = state.variable || state.variables || state;
-        if (typeof variablesObj === 'object') {
-          return Object.values(variablesObj as Record<string, unknown>)
-            .filter(isRawLogicVariable)
-            .map((v) => ({
-              id: v.id,
-              name: v.name,
-              type: v.type,
-              value: v.value,
-            }));
-        }
-      }
-
-      throw new Error('Unable to retrieve logic variables: getState() did not return variable data');
-    }
-    throw error;
-  }
+export async function fetchLogicVariables(homeyApi: HomeyLogicApiClient): Promise<LogicVariable[]> {
+  const variablesObj = await homeyApi.logic.getVariables();
+  return Object.values(variablesObj).map((v) => ({
+    id: v.id,
+    name: v.name,
+    type: v.type,
+    value: v.value,
+  }));
 }
 
 export class GetLogicVariablesTool extends BaseTool {
@@ -134,7 +88,7 @@ EXAMPLE: "Show me all lux-related variables" → search_name: "lux"`,
 
       this.logger.log('Getting logic variables', { filterType, searchName });
 
-      let variables = await fetchLogicVariables(this.homeyApi, this.logger);
+      let variables = await fetchLogicVariables(this.homeyApi);
 
       // Apply type filter
       if (filterType) {
