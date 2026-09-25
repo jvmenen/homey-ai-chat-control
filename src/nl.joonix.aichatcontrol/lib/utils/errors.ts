@@ -95,6 +95,16 @@ export class APIInitializationError extends HomeyMCPError {
 }
 
 /**
+ * Error response from Homey's Web API
+ */
+export class HomeyApiError extends HomeyMCPError {
+  constructor(message: string, public readonly statusCode: number) {
+    super(message, 'HOMEY_API_ERROR');
+    this.name = 'HomeyApiError';
+  }
+}
+
+/**
  * Tool not found error
  */
 export class ToolNotFoundError extends HomeyMCPError {

@@ -34,5 +34,9 @@
   "4.0.1": {
     "en": "Lighter app: the built-in web server replaces the Express library, and unused files are no longer included. The app now takes about 40% less storage on your Homey. No functional changes.",
     "nl": "Lichtere app: de ingebouwde webserver vervangt de Express-bibliotheek en ongebruikte bestanden gaan niet meer mee. De app neemt zo'n 40% minder opslag in op je Homey. Geen functionele wijzigingen."
+  },
+  "4.0.2": {
+    "en": "Lighter app: it now talks to Homey directly instead of through the homey-api library. The app uses about 20% less memory and its package is a quarter of the size. No functional changes.",
+    "nl": "Lichtere app: de app praat nu rechtstreeks met Homey in plaats van via de homey-api-bibliotheek. De app gebruikt zo'n 20% minder geheugen en het pakket is een kwart zo groot. Geen functionele wijzigingen."
   }
 }

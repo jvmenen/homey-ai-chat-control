@@ -1,4 +1,4 @@
-import type { HomeyAPI } from 'homey-api';
+import type { HomeyRestClient } from '../api/homey-rest-client';
 import type { ZoneDeviceManager } from './zone-device-manager';
 import type { HomeyInstance } from '../types';
 import { Logger } from '../utils/logger';
@@ -48,8 +48,7 @@ export type InsightResolution =
   | 'thisMonth'
   | 'thisYear';
 
-// Raw insight log shape as returned by the Homey `insights` API (not covered by the
-// `homey-api` package's own types, but present at runtime).
+// Raw insight log shape as returned by the Homey `insights` API
 interface RawInsightLog {
   id?: string;
   ownerUri?: string;
@@ -62,18 +61,6 @@ interface RawInsightLog {
   decimals?: number;
 }
 
-// Minimal shape of the `insights` sub-client used here. It exists at runtime on the
-// `HomeyAPI` instance but isn't declared by `homey-api`'s own types.
-interface HomeyInsightsClient {
-  getLogs(): Promise<Record<string, unknown>>;
-  getLog(options: { id: string }): Promise<RawInsightLog>;
-  getLogEntries(options: {
-    id: string;
-    uri: string;
-    resolution?: InsightResolution;
-  }): Promise<{ values?: unknown[] }>;
-}
-
 /**
  * Manager for Homey Insights operations
  * Handles discovery and retrieval of insight logs and their historical data
@@ -82,16 +69,11 @@ export class InsightsManager {
   private logger: Logger;
 
   constructor(
-    private readonly homeyApi: HomeyAPI,
+    private readonly homeyApi: HomeyRestClient,
     private readonly zoneDeviceManager: ZoneDeviceManager,
     homey: HomeyInstance,
   ) {
     this.logger = new Logger(homey, 'InsightsManager');
-  }
-
-  // Note: insights API not in HomeyAPI type definitions, but exists at runtime
-  private get insightsApi(): HomeyInsightsClient {
-    return (this.homeyApi as unknown as { insights: HomeyInsightsClient }).insights;
   }
 
   /**
@@ -99,8 +81,8 @@ export class InsightsManager {
    */
   async getInsightsOverview(filters?: GetInsightsOverviewFilters): Promise<InsightLog[]> {
     // Get all logs from Homey API
-    const logsObj = await this.insightsApi.getLogs();
-    const logs = Object.values(logsObj) as RawInsightLog[];
+    const logsObj = await this.homeyApi.insights.getLogs<RawInsightLog>();
+    const logs = Object.values(logsObj);
 
     // Get device and zone information for enrichment
     const homeStructure = await this.zoneDeviceManager.getHomeStructure();
@@ -179,15 +161,11 @@ export class InsightsManager {
     for (const logId of logIds) {
       try {
         // Get the log metadata first
-        const log = await this.insightsApi.getLog({ id: logId });
-
-        // Calculate URI (first 3 parts of the ID)
-        const uri = logId.split(':', 3).join(':');
+        const log = await this.homeyApi.insights.getLog<RawInsightLog>({ id: logId });
 
         // Get log entries with optional resolution
-        const entriesResponse = await this.insightsApi.getLogEntries({
+        const entriesResponse = await this.homeyApi.insights.getLogEntries<{ values?: unknown[] }>({
           id: logId,
-          uri,
           resolution,
         });
 

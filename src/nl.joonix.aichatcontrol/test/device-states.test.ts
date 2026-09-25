@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import type { HomeyRestClient } from '../lib/api/homey-rest-client';
 import { filterSilentDevices, lastDeviceUpdate } from '../lib/diagnostics/device-activity';
 import { formatDeviceStates } from '../lib/formatters/device-states-formatter';
 import { ZoneDeviceManager } from '../lib/managers/zone-device-manager';
@@ -72,7 +73,7 @@ describe('formatDeviceStates', () => {
 });
 
 describe('ZoneDeviceManager.getStates timestamps', () => {
-  // Regression: homey-api hands out lastUpdated as a Date object; the first version only read numbers
+  // Regression: the Homey API client hands out lastUpdated as a Date object; the first version only read numbers
   const lastUpdated = new Date(NOW - 3 * HOUR);
   const rawDevice = {
     id: 'dev',
@@ -99,12 +100,12 @@ describe('ZoneDeviceManager.getStates timestamps', () => {
   };
 
   it('reads Date objects as update times', async () => {
-    const states = await new ZoneDeviceManager(fakeHomey(), api).getStates();
+    const states = await new ZoneDeviceManager(fakeHomey(), api as unknown as HomeyRestClient).getStates();
     assert.equal(states.devices[0].capabilityUpdated?.alarm_contact, lastUpdated.getTime());
   });
 
   it('finds the device through get_states silent_for_hours', async () => {
-    const tool = new GetStatesTool(fakeHomey(), new ZoneDeviceManager(fakeHomey(), api));
+    const tool = new GetStatesTool(fakeHomey(), new ZoneDeviceManager(fakeHomey(), api as unknown as HomeyRestClient));
     const text = resultText(await tool.execute({ silent_for_hours: 1 }));
     assert.match(text, /SUMMARY: 1 of 1 device/);
     assert.match(text, /name="Door"/);

@@ -24,6 +24,7 @@ import {
 import { IZoneDeviceManager, DeviceStatesResult } from '../interfaces';
 import { Logger } from '../utils/logger';
 import { toEpochMs } from '../utils/time';
+import type { HomeyRestClient } from '../api/homey-rest-client';
 
 // Type for Homey API device/zone objects (simplified interface)
 interface HomeyAPIDevice {
@@ -46,7 +47,6 @@ interface HomeyAPIDevice {
   }>;
   available?: boolean;
   ready?: boolean;
-  setCapabilityValue: (capability: string, value: unknown) => Promise<void>;
   [key: string]: unknown;
 }
 
@@ -64,55 +64,21 @@ interface HomeyAPIZone {
 export class ZoneDeviceManager implements IZoneDeviceManager {
   private homey: HomeyInstance;
 
-  // The `homey-api` package's types don't cover the full client surface, and this instance is
-  // shared with other managers (e.g. InsightsManager expects the real `HomeyAPI` type) that
-  // each use a different subset of it, so it's kept untyped at this hub rather than forcing
-  // a single, necessarily-incomplete shape on every consumer.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private homeyApi: any;
+  private homeyApi: HomeyRestClient;
 
-  private isDestroying: boolean = false;
   private logger: Logger;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see homeyApi field comment above
-  constructor(homey: HomeyInstance, homeyApi: any) {
+  constructor(homey: HomeyInstance, homeyApi: HomeyRestClient) {
     this.homey = homey;
     this.homeyApi = homeyApi;
     this.logger = new Logger(homey, 'ZoneDeviceManager');
   }
 
   /**
-   * Get the Homey API instance
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see homeyApi field comment above
-  getHomeyApi(): any {
-    return this.homeyApi;
-  }
-
-  /**
-   * Clean up resources
-   * Note: API connection is managed by HomeyAPIManager
+   * Clean up resources; the REST client holds no connections or listeners
    */
   async destroy(): Promise<void> {
-    if (this.isDestroying) {
-      return;
-    }
-
-    this.isDestroying = true;
-    this.logger.log('Cleaning up resources...');
-
-    try {
-      // Remove any event listeners if needed
-      if (this.homeyApi && typeof this.homeyApi.removeAllListeners === 'function') {
-        this.homeyApi.removeAllListeners();
-      }
-
-      this.logger.log('Cleanup completed');
-    } catch (error) {
-      this.logger.error('Error during cleanup:', error);
-    } finally {
-      this.isDestroying = false;
-    }
+    this.logger.log('Cleanup completed');
   }
 
   /**
@@ -121,7 +87,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async getZones(): Promise<HomeyZone[]> {
 
     try {
-      const zonesObj = await this.homeyApi.zones.getZones();
+      const zonesObj = await this.homeyApi.zones.getZones<HomeyAPIZone>();
       const zones: HomeyZone[] = (Object.values(zonesObj) as HomeyAPIZone[]).map((zone) => ({
         id: zone.id,
         name: zone.name,
@@ -146,7 +112,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async getZone(zoneId: string): Promise<HomeyZone | null> {
 
     try {
-      const zone = await this.homeyApi.zones.getZone({ id: zoneId });
+      const zone = await this.homeyApi.zones.getZone<HomeyAPIZone>({ id: zoneId });
 
       if (!zone) {
         return null;
@@ -218,8 +184,8 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async getDevices(): Promise<HomeyDevice[]> {
 
     try {
-      const devicesObj = await this.homeyApi.devices.getDevices();
-      const zonesObj = await this.homeyApi.zones.getZones();
+      const devicesObj = await this.homeyApi.devices.getDevices<HomeyAPIDevice>();
+      const zonesObj = await this.homeyApi.zones.getZones<HomeyAPIZone>();
 
       // Build zone name lookup map
       const zoneNameMap = new Map<string, string>();
@@ -275,7 +241,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async getDevice(deviceId: string): Promise<HomeyDevice | null> {
 
     try {
-      const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+      const device = await this.homeyApi.devices.getDevice<HomeyAPIDevice>({ id: deviceId });
 
       if (!device) {
         return null;
@@ -284,7 +250,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       // Get zone name
       let zoneName = device.zone;
       try {
-        const zone = await this.homeyApi.zones.getZone({ id: device.zone });
+        const zone = await this.homeyApi.zones.getZone<HomeyAPIZone>({ id: device.zone });
         if (zone) {
           zoneName = zone.name;
         }
@@ -301,7 +267,8 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
         driverUri: device.driverId || 'unknown', // Use driverId instead of deprecated driverUri
         class: device.class,
         capabilities: device.capabilities || [],
-        capabilitiesObj: device.capabilitiesObj || {},
+        // Homey's capability objects carry the fields of DeviceCapability (title etc.)
+        capabilitiesObj: (device.capabilitiesObj || {}) as unknown as HomeyDevice['capabilitiesObj'],
         available: device.available !== false,
         ready: device.ready !== false,
       };
@@ -345,7 +312,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async getCapabilityValue(deviceId: string, capability: string): Promise<unknown> {
 
     try {
-      const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+      const device = await this.homeyApi.devices.getDevice<HomeyAPIDevice>({ id: deviceId });
 
       if (!device) {
         throw new DeviceNotFoundError(deviceId);
@@ -454,7 +421,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async setCapabilityValue(deviceId: string, capability: string, value: unknown): Promise<void> {
 
     try {
-      const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+      const device = await this.homeyApi.devices.getDevice<HomeyAPIDevice>({ id: deviceId });
 
       if (!device) {
         throw new DeviceNotFoundError(deviceId);
@@ -483,7 +450,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
       this.logger.log(`Setting ${device.name} ${capability}: ${value} (${typeof value}) -> ${convertedValue} (${typeof convertedValue})`);
 
       // Set the value with the converted type
-      await device.setCapabilityValue(capability, convertedValue);
+      await this.homeyApi.devices.setCapabilityValue({ deviceId, capabilityId: capability, value: convertedValue });
 
       this.logger.log(`✅ Set ${device.name} ${capability} to ${convertedValue}`);
     } catch (error) {
@@ -498,7 +465,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async toggleDevice(deviceId: string, capability: string = 'onoff'): Promise<boolean> {
 
     try {
-      const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+      const device = await this.homeyApi.devices.getDevice<HomeyAPIDevice>({ id: deviceId });
 
       if (!device) {
         throw new DeviceNotFoundError(deviceId);
@@ -851,8 +818,8 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async getMoods(): Promise<HomeyMood[]> {
 
     try {
-      const moodsObj = await this.homeyApi.moods.getMoods();
-      const moods: HomeyMood[] = (Object.values(moodsObj) as HomeyMood[]).map((mood) => ({
+      const moodsObj = await this.homeyApi.moods.getMoods<HomeyMood>();
+      const moods: HomeyMood[] = Object.values(moodsObj).map((mood) => ({
         id: mood.id,
         name: mood.name,
         zone: mood.zone,
@@ -874,7 +841,7 @@ export class ZoneDeviceManager implements IZoneDeviceManager {
   async getMood(moodId: string): Promise<HomeyMood | null> {
 
     try {
-      const mood = await this.homeyApi.moods.getMood({ id: moodId });
+      const mood = await this.homeyApi.moods.getMood<HomeyMood>({ id: moodId });
 
       if (!mood) {
         return null;

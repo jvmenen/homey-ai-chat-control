@@ -11,7 +11,7 @@ export function hoursSince(epochMs: number, now: number = Date.now()): number {
 
 /**
  * Normalize a Homey timestamp to epoch ms.
- * homey-api hands out Date objects, the raw REST API numbers or ISO strings.
+ * Capability timestamps from the Homey REST client are Date objects; other API data has numbers or ISO strings.
  */
 export function toEpochMs(value: unknown): number | null {
   let ms: number | null = null;

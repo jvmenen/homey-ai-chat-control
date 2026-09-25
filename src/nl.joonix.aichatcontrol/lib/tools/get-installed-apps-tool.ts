@@ -2,18 +2,26 @@
  * Get Installed Apps Tool - List all installed Homey apps
  */
 
-import type { HomeyAPIV3Local } from 'homey-api';
 import { BaseTool } from './base-tool';
 import { MCPTool, MCPToolCallResult, HomeyInstance } from '../types';
 import { Logger } from '../utils/logger';
 
-// Type aliases for flow cards
-type FlowCardTrigger = HomeyAPIV3Local.ManagerFlow.FlowCardTrigger;
-type FlowCardCondition = HomeyAPIV3Local.ManagerFlow.FlowCardCondition;
-type FlowCardAction = HomeyAPIV3Local.ManagerFlow.FlowCardAction;
+// Flow card and device shapes from the Homey API; only the fields this file reads are
+// declared, the rest is passed through to the output as-is
+interface FlowCard {
+  ownerUri?: string;
+  [key: string]: unknown;
+}
+type FlowCardTrigger = FlowCard;
+type FlowCardCondition = FlowCard;
+type FlowCardAction = FlowCard;
 
-// App shape as returned by `homeyApi.apps.getApps()` (simplified; the HomeyAPI type for
-// this is incomplete, so only the fields this file reads are declared here)
+interface HomeyDevice {
+  driverId?: string;
+  [key: string]: unknown;
+}
+
+// App shape as returned by `homeyApi.apps.getApps()` (only the fields this file reads)
 interface HomeyApp {
   id?: string;
   name?: string;
@@ -29,7 +37,7 @@ interface HomeyApiClient {
     getApps(): Promise<Record<string, HomeyApp>>;
   };
   devices: {
-    getDevices(): Promise<Record<string, HomeyAPIV3Local.ManagerDevices.Device>>;
+    getDevices(): Promise<Record<string, HomeyDevice>>;
   };
   flow: {
     getFlowCardTriggers(): Promise<Record<string, FlowCardTrigger>>;
@@ -123,7 +131,7 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
       const apps = await this.homeyApi.apps.getApps();
 
       // Get devices if requested
-      let devices: Record<string, HomeyAPIV3Local.ManagerDevices.Device> = {};
+      let devices: Record<string, HomeyDevice> = {};
       if (includeDevices) {
         devices = await this.homeyApi.devices.getDevices();
       }
@@ -156,7 +164,7 @@ EXAMPLE: To find Philips Hue flows, first call this to get "com.athom.hue", then
             conditions: Object.values(allFlowCardConditions).filter((card: FlowCardCondition) => card.ownerUri?.startsWith(appUri)),
             actions: Object.values(allFlowCardActions).filter((card: FlowCardAction) => card.ownerUri?.startsWith(appUri)),
           } : undefined,
-          devices: includeDevices ? Object.values(devices).filter((d: HomeyAPIV3Local.ManagerDevices.Device) => {
+          devices: includeDevices ? Object.values(devices).filter((d: HomeyDevice) => {
             const driverId = d.driverId || '';
             return driverId.startsWith(`homey:app:${id}:`);
           }) : undefined,

@@ -47,7 +47,6 @@ export interface IZoneDeviceManager {
 
   /**
    * Clean up resources
-   * Note: API connection is managed by HomeyAPIManager
    */
   destroy(): Promise<void>;
 

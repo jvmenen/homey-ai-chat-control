@@ -9,7 +9,6 @@
  */
 
 export { IHomeyClient } from './IHomeyClient';
-export { IHomeyApiClient } from './IHomeyApiClient';
 export {
   IFlowManager,
   FlowOverviewData,

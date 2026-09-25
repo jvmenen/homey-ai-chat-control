@@ -47,9 +47,7 @@ interface HomeyAPIDevice {
   [key: string]: unknown;
 }
 
-// Minimal shape of the Homey API client this manager needs.
-// The full `HomeyAPIV3Local` type from `homey-api` doesn't declare `.flow`/`.devices`,
-// so we describe just the surface used here instead of typing the whole client.
+// Minimal shape of the Homey API client this manager needs
 interface HomeyApiClient {
   flow: {
     getFlows(): Promise<Record<string, unknown>>;

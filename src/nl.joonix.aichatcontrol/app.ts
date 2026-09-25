@@ -2,7 +2,7 @@
 
 import Homey from 'homey';
 import { Server } from 'http';
-import { HomeyAPIManager } from './lib/managers/homey-api-manager';
+import { createHomeyRestClient } from './lib/api/homey-rest-client';
 import { FlowManager } from './lib/managers/flow-manager';
 import { ZoneDeviceManager } from './lib/managers/zone-device-manager';
 import { InsightsManager } from './lib/managers/insights-manager';
@@ -38,7 +38,6 @@ import { createMcpHttpServer } from './lib/server/mcp-http-server';
 
 module.exports = class HomeyMCPApp extends Homey.App {
   private httpServer!: Server;
-  private homeyApiManager!: HomeyAPIManager;
   private flowManager!: FlowManager;
   private zoneDeviceManager!: ZoneDeviceManager;
   private insightsManager!: InsightsManager;
@@ -77,14 +76,8 @@ module.exports = class HomeyMCPApp extends Homey.App {
 
       this.log('Flow trigger card registered with run listener');
 
-      // Initialize Homey API Manager FIRST (provides shared API connection)
-      this.log('Initializing Homey API Manager...');
-      this.homeyApiManager = new HomeyAPIManager(this.homey);
-      await this.homeyApiManager.init();
-      this.log('Homey API Manager initialized');
-
-      // Get the shared API instance
-      const homeyApi = this.homeyApiManager.getApi();
+      // Shared client for Homey's local Web API, used by all managers and tools
+      const homeyApi = await createHomeyRestClient(this.homey);
 
       // Initialize Flow Manager with shared API
       this.log('Initializing Flow Manager...');
@@ -99,7 +92,7 @@ module.exports = class HomeyMCPApp extends Homey.App {
       // Initialize Insights Manager
       this.log('Initializing Insights Manager...');
       this.insightsManager = new InsightsManager(
-        this.zoneDeviceManager.getHomeyApi(),
+        homeyApi,
         this.zoneDeviceManager,
         this.homey,
       );
@@ -211,16 +204,6 @@ module.exports = class HomeyMCPApp extends Homey.App {
         this.log('Zone & Device Manager cleaned up');
       } catch (error) {
         this.error('Error cleaning up Zone & Device Manager:', error);
-      }
-    }
-
-    // Clean up Homey API Manager (closes shared API connection)
-    if (this.homeyApiManager) {
-      try {
-        await this.homeyApiManager.destroy();
-        this.log('Homey API Manager cleaned up');
-      } catch (error) {
-        this.error('Error cleaning up Homey API Manager:', error);
       }
     }
 
